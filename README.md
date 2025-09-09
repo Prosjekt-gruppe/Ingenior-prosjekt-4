@@ -5,5 +5,6 @@
 Search and rescue<br>
 **Size:**<br>
 28.5cm propeller to opposite propeller<br>
-**Price:**<br>
+**Budget:**<br>
 3000 Nok
+
