@@ -15,10 +15,25 @@ background = pygame.Surface((800, 600))
 background.fill(pygame.Color("#C0C0C0"))
 manager = pygame_gui.UIManager((800, 600))
 
+#Flight path
+pygame.draw.rect(background,"#13C76D", [200, 100, 400, 350],0)
+
+
 #Gauges
 thruster_gauge = pygame.image.load('Firmware/Controller/Thrust-gauge.png')
 pygame.draw.rect(background, (255, 0, 0), [700, 320, 40, 20], 0)
 background.blit(thruster_gauge, (700,100))
+
+
+pitch_gauge = pygame.image.load('Firmware/Controller/Gauge_template.png')
+background.blit(pitch_gauge, (35,50))
+pygame.draw.circle(background,"#000000",[35,50], 5,2)
+
+roll_gauge = pygame.image.load('Firmware/Controller/Gauge_template.png')
+background.blit(roll_gauge, (35,200))
+
+heading_gauge = pygame.image.load('Firmware/Controller/Gauge_template.png')
+background.blit(heading_gauge, (35,350))
 
 
 #Bottom button creation
