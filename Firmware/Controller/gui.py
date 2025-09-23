@@ -6,6 +6,8 @@ import os
 pygame.init()
 
 thrust = 00
+gauge_text = pygame.font.SysFont("Arial", 16)
+
 pygame.display.set_caption("Drone GUI")
 
 window_surface = pygame.display.set_mode((800, 600))
@@ -20,21 +22,33 @@ pygame.draw.rect(background,"#13C76D", [200, 100, 400, 350],0)
 
 
 #Gauges
+thrust_text = gauge_text.render("Thrust power", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 thruster_gauge = pygame.image.load('Firmware/Controller/Thrust-gauge.png')
 pygame.draw.rect(background, (255, 0, 0), [700, 320, 40, 20], 0)
 background.blit(thruster_gauge, (700,100))
+background.blit(thrust_text, (672, 75))
 
 
-pitch_gauge = pygame.image.load('Firmware/Controller/Gauge_template.png')
+pitch_text = gauge_text.render("Pitch", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+pitch_gauge = pygame.image.load('Firmware/Controller/Gauge_template_empty.png')
 background.blit(pitch_gauge, (35,50))
-pygame.draw.circle(background,"#000000",[35,50], 5,2)
+pitch_gauge = pygame.image.load('Firmware/Controller/Gauge_pitch.png')
+background.blit(pitch_gauge, (35,50))
+background.blit(pitch_text, (78, 30))
 
-roll_gauge = pygame.image.load('Firmware/Controller/Gauge_template.png')
+roll_text = gauge_text.render("Roll", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+roll_gauge = pygame.image.load('Firmware/Controller/Gauge_template_empty.png')
 background.blit(roll_gauge, (35,200))
+roll_gauge = pygame.image.load('Firmware/Controller/Gauge_rol_text.png')
+background.blit(roll_gauge, (35,200))
+background.blit(roll_text, (80, 180))
 
-heading_gauge = pygame.image.load('Firmware/Controller/Gauge_template.png')
+heading_text = gauge_text.render("Heading", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+heading_gauge = pygame.image.load('Firmware/Controller/Gauge_template_empty.png')
 background.blit(heading_gauge, (35,350))
-
+heading_gauge = pygame.image.load('Firmware/Controller/Gauge_heading_text.png')
+background.blit(heading_gauge, (35,350))
+background.blit(heading_text, (67, 330))
 
 #Bottom button creation
 hello_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Thruster speed', manager=manager)
