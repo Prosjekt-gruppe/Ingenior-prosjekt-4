@@ -9,6 +9,10 @@ thrust = 00
 heading = 0
 pitch = 0
 roll = 0
+voltage = 2
+current = 1
+prev_voltage = 1
+prev_current = 0
 
 gauge_text = pygame.font.SysFont("Arial", 16)
 
@@ -104,9 +108,18 @@ while is_running:
             heading +=359
     heading_gauge = pygame.image.load('Firmware/Controller/Gauge_heading_text.png')
     background.blit(heading_gauge, (35,350))
-    background.blit(heading_text, (67, 330))
+  
 
-
+    battery_text = gauge_text.render("Battery status:", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    battery_voltage = gauge_text.render(f"Voltage: {voltage}V", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    battery_current = gauge_text.render(f"Current: {current}A", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    
+    
+    pygame.draw.rect(background, ("#C0C0C0"), [200, 30, 110, 60], 0)
+    background.blit(battery_text, (200, 30))
+    background.blit(battery_voltage, (200, 50))
+    background.blit(battery_current, (200, 70))
+    
     max_height = 335
     bar_bottom_y = 340  # bottom of the gauge
     # calculate the current height of the thrust bar based on thrust value
