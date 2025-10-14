@@ -1,0 +1,8 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "footprints")(type "KiCad")(uri "${KIPRJMOD}/libs/footprints")(options "")(descr ""))
+  (lib (name "STSPIN32F0252")(type "KiCad")(uri "${KIPRJMOD}/libs/footprints/STSPIN32F0252.pretty")(options "")(descr ""))
+  (lib (name "STSPIN32F0")(type "KiCad")(uri "${KIPRJMOD}/libs/footprints/STSPIN32F0.pretty")(options "")(descr ""))
+  (lib (name "STSPIN32F0BTR")(type "KiCad")(uri "${KIPRJMOD}/libs/footprints/STSPIN32F0BTR.pretty")(options "")(descr ""))
+  (lib (name "Inductors")(type "KiCad")(uri "${KIPRJMOD}/libs/footprints/Inductors.pretty")(options "")(descr ""))
+)

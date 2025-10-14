@@ -1,0 +1,9 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "IAUCN04S7N030")(type "KiCad")(uri "${KIPRJMOD}/libs/symbols/IAUCN04S7N030.kicad_sym")(options "")(descr ""))
+  (lib (name "STSPIN32F0252")(type "KiCad")(uri "${KIPRJMOD}/libs/symbols/STSPIN32F0252.kicad_sym")(options "")(descr ""))
+  (lib (name "STSPIN32F0")(type "KiCad")(uri "${KIPRJMOD}/libs/symbols/STSPIN32F0.kicad_sym")(options "")(descr ""))
+  (lib (name "STSPIN32F0BTR")(type "KiCad")(uri "${KIPRJMOD}/libs/symbols/STSPIN32F0BTR.kicad_sym")(options "")(descr ""))
+  (lib (name "Symbols")(type "KiCad")(uri "${KIPRJMOD}/libs/symbols")(options "")(descr ""))
+  (lib (name "SRN3015-220M")(type "KiCad")(uri "${KIPRJMOD}/libs/symbols/SRN3015-220M.kicad_sym")(options "")(descr ""))
+)
