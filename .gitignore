@@ -21,6 +21,8 @@ fp-info-cache
 *.dsn
 *.ses
 
+#
+
 # Footprint association file (exported from Pcbnew)
 *.cmp
 
