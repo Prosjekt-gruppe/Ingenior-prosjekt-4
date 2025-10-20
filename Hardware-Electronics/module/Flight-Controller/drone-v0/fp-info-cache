@@ -1,4 +1,4 @@
-26672852071482529
+26690447425618576
 2171790001(1)
 MOLEX_2171790001
 
@@ -59366,6 +59366,13 @@ ceramic
 0
 3
 3
+D3V3XA4B10LP-7
+D3V3XA4B10LP7
+D3V3XA4B10LP-7-3
+TVS Diode (Bi-directional)
+0
+10
+10
 Diode_SMD
 D_0201_0603Metric
 Diode SMD 0201 (0603 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: https://www.vishay.com/docs/20052/crcw0201e3.pdf), generated with kicad-footprint-generator
@@ -61389,6 +61396,13 @@ One digit LED 7 segment SA39-11 SC39-11 SA39-12 SC39-12
 0
 10
 10
+ECS-400-10-37B2-CKM-TR
+ECS4001037B2CKMTR
+2.0mm x 1.6mm x 0.45mm
+Crystal or Oscillator
+0
+4
+4
 ESP32-S3-MINI-1U-N8
 XCVR_ESP32-S3-MINI-1U-N8
 
@@ -73450,6 +73464,27 @@ threaded screw
 0
 4
 1
+NUF2042XV6T1G
+SON_2XV6T1G_ONS
+
+NUF2042XV6T1G 
+0
+6
+6
+NUF2042XV6T1G
+SON_2XV6T1G_ONS-L
+
+NUF2042XV6T1G 
+0
+6
+6
+NUF2042XV6T1G
+SON_2XV6T1G_ONS-M
+
+NUF2042XV6T1G 
+0
+6
+6
 NetTie
 NetTie-2_SMD_Pad0.5mm
 Net tie, 2 pin, 0.5mm square SMD pads
@@ -74745,6 +74780,13 @@ DIL DIP PDIP 2.54mm 7.62mm 300mil
 0
 4
 4
+PMEG4010BEA,
+SOD2512X110N
+BAP64-03
+Schottky Diode
+0
+2
+2
 Package_BGA
 Alliance_TFBGA-36_6x8mm_Layout6x8_P0.75mm
 Alliance TFBGA-36, NSMD, 6.0x8.0mm, 36 Ball, 6x8 Layout, 0.75mm Pitch, generated with kicad-footprint-generator ipc_bga_generator.py, https://www.alliancememory.com/wp-content/uploads/pdf/AS6C1008_Mar_2023V1.2.pdf#page=13
@@ -99301,6 +99343,34 @@ Switch
 0
 4
 4
+TLV76733DRVR
+DRV0006A-IPC_A
+
+TLV76733DRVR 
+0
+7
+7
+TLV76733DRVR
+DRV0006A-IPC_B
+
+TLV76733DRVR 
+0
+7
+7
+TLV76733DRVR
+DRV0006A-IPC_C
+
+TLV76733DRVR 
+0
+7
+7
+TLV76733DRVR
+DRV0006A-MFG
+
+TLV76733DRVR 
+0
+9
+9
 Tantalum Cap 10uF 0603
 298D106X0010M2T
 298D106X0010M2T-4
