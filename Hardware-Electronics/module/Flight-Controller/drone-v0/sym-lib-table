@@ -3,4 +3,6 @@
   (lib (name "217179-0001")(type "KiCad")(uri "/home/boogersugar/Documents/dev/kicad/components/Connectors/USB Type C/2171790001/2171790001.kicad_sym")(options "")(descr ""))
   (lib (name "ESP32-S3-MINI-1U-N8")(type "KiCad")(uri "/home/boogersugar/Documents/dev/kicad/components/Microcontroller/ESP32-S3-MINI-1U-N8/ESP32-S3-MINI-1U-N8.kicad_sym")(options "")(descr ""))
   (lib (name "D3V3XA4B10LP-7")(type "KiCad")(uri "/home/boogersugar/Documents/dev/kicad/components/Diode/ESD Protection/\nD3V3XA4B10LP-7\n/KiCad/D3V3XA4B10LP-7.kicad_sym")(options "")(descr ""))
+  (lib (name "PMEG4010BEA,")(type "KiCad")(uri "/home/boogersugar/Documents/dev/kicad/components/Diode/ESD Protection/LIB_PMEG4010BEA,115/PMEG4010BEA,115/KiCad/PMEG4010BEA_115.kicad_sym")(options "")(descr ""))
+  (lib (name "TLV76733DRVR")(type "KiCad")(uri "/home/boogersugar/Documents/dev/kicad/components/Regulator/ul_TLV76733DRVR/KiCADv6/2025-09-29_20-50-42.kicad_sym")(options "")(descr ""))
 )
