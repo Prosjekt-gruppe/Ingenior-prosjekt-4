@@ -8759,7 +8759,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "footprints:SAMTEC_FTSH-105-01-F-DH"
 			(at 53.34 247.65 0)
 			(effects
 				(font
