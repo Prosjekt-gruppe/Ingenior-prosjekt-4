@@ -6623,6 +6623,196 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "SML-P11UTT86R_3"
+			(pin_names
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "LED1"
+				(at 6.604 -4.318 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "SML-P11UTT86R"
+				(at 6.35 4.318 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "KDZLV100"
+				(at 12.7 -93.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets_SAMA/73e45240dc22d6138ffe9baf2b813dcb.pdf"
+				(at 12.7 -193.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(property "Description" "PICOLED-Eco LED Red 6.3mcd SMT1006(0402)"
+				(at 1.524 18.288 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Height" ""
+				(at 12.7 -393.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(property "Mouser Part Number" "755-SML-P11UTT86R"
+				(at 12.7 -493.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/ROHM-Semiconductor/SML-P11UTT86R?qs=Ei%2Fnxee9QYhZCfOujmGTCA%3D%3D"
+				(at 12.7 -593.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(property "Manufacturer_Name" "ROHM Semiconductor"
+				(at 12.7 -693.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(property "Manufacturer_Part_Number" "SML-P11UTT86R"
+				(at 12.7 -793.65 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left bottom)
+					(hide yes)
+				)
+			)
+			(symbol "SML-P11UTT86R_3_1_1"
+				(polyline
+					(pts
+						(xy 3.302 0) (xy 5.334 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 1.524) (xy 5.08 -1.524)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 0) (xy 7.874 1.524) (xy 7.874 -1.524) (xy 5.08 0)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 7.874 0) (xy 9.906 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at 1.27 0 0)
+					(length 2.54)
+					(name "K"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 11.43 0 180)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "TLV76733DRVR:TLV76733DRVR"
 			(pin_names
 				(offset 0.254)
@@ -8171,6 +8361,16 @@
 	)
 	(wire
 		(pts
+			(xy 276.86 68.58) (xy 285.75 68.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "079a88db-cbc7-4a37-b190-9baf4375d89e")
+	)
+	(wire
+		(pts
 			(xy 205.74 205.74) (xy 209.55 205.74)
 		)
 		(stroke
@@ -8288,6 +8488,16 @@
 			(type default)
 		)
 		(uuid "134c6422-57a3-4112-a30f-0f9312a19e9a")
+	)
+	(wire
+		(pts
+			(xy 217.17 226.06) (xy 220.98 226.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "14769e8e-f1df-46ae-b2d6-c66ab84041a8")
 	)
 	(wire
 		(pts
@@ -9038,6 +9248,16 @@
 			(type default)
 		)
 		(uuid "59b1adfc-2227-4159-9808-5f3f8817977f")
+	)
+	(wire
+		(pts
+			(xy 195.58 226.06) (xy 186.69 226.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5cb5c2f0-62aa-4e83-b976-78d4e2a930b5")
 	)
 	(wire
 		(pts
@@ -10071,6 +10291,16 @@
 	)
 	(wire
 		(pts
+			(xy 205.74 226.06) (xy 209.55 226.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b143e776-41c6-4ce6-9eef-f34c04cc93f5")
+	)
+	(wire
+		(pts
 			(xy 87.63 58.42) (xy 99.06 58.42)
 		)
 		(stroke
@@ -10418,6 +10648,16 @@
 			(type default)
 		)
 		(uuid "d1708256-3a0d-4db2-b920-f0d4ee8d4bd1")
+	)
+	(wire
+		(pts
+			(xy 220.98 226.06) (xy 220.98 227.33)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d1d58504-49d5-4897-a448-0f28e78f4b2c")
 	)
 	(wire
 		(pts
@@ -10889,6 +11129,16 @@
 		)
 		(uuid "fffd87e6-41da-47b7-8813-eea5b88aa6ee")
 	)
+	(label "LED_OUT"
+		(at 276.86 68.58 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "02dc8b9d-0b3b-4a2a-9468-ca08bcd5c535")
+	)
 	(label "D+"
 		(at 99.06 73.66 0)
 		(effects
@@ -11129,6 +11379,16 @@
 			(justify right bottom)
 		)
 		(uuid "64276495-0a02-426d-b577-802d9b015fb3")
+	)
+	(label "LED_OUT"
+		(at 186.69 226.06 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "680537b2-3d7b-4503-907e-3d470fedd1b5")
 	)
 	(label "SPI1_MISO"
 		(at 337.82 58.42 180)
@@ -11588,6 +11848,126 @@
 			(project ""
 				(path "/53791211-d489-4051-9dbb-0db9ed0ba3ff"
 					(reference "C30")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_name "SML-P11UTT86R_3")
+		(lib_id "RED LED 0402:SML-P11UTT86R")
+		(at 207.01 226.06 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "0ad4437b-1ec0-4ed3-bc8a-7bf76d92ab3d")
+		(property "Reference" "LED4"
+			(at 200.406 221.742 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SML-P11UTT86R"
+			(at 200.66 230.378 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "KDZLV100"
+			(at 194.31 132.41 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "https://datasheet.datasheetarchive.com/originals/distributors/Datasheets_SAMA/73e45240dc22d6138ffe9baf2b813dcb.pdf"
+			(at 194.31 32.41 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(property "Description" "PICOLED-Eco LED Red 6.3mcd SMT1006(0402)"
+			(at 205.486 244.348 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Height" ""
+			(at 194.31 -167.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(property "Mouser Part Number" "755-SML-P11UTT86R"
+			(at 194.31 -267.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/ROHM-Semiconductor/SML-P11UTT86R?qs=Ei%2Fnxee9QYhZCfOujmGTCA%3D%3D"
+			(at 194.31 -367.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(property "Manufacturer_Name" "ROHM Semiconductor"
+			(at 194.31 -467.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(property "Manufacturer_Part_Number" "SML-P11UTT86R"
+			(at 194.31 -567.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+				(hide yes)
+			)
+		)
+		(pin ""
+			(uuid "674d5407-9cd5-44dd-9c8b-5b75f853d61b")
+		)
+		(pin ""
+			(uuid "c1a01127-a944-4677-bef4-4010c1334e99")
+		)
+		(instances
+			(project "drone-v0"
+				(path "/53791211-d489-4051-9dbb-0db9ed0ba3ff"
+					(reference "LED4")
 					(unit 1)
 				)
 			)
@@ -12798,6 +13178,74 @@
 			(project ""
 				(path "/53791211-d489-4051-9dbb-0db9ed0ba3ff"
 					(reference "#PWR026")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 213.36 226.06 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "42675943-6443-4bd3-b9d9-afcc367c4a07")
+		(property "Reference" "R15"
+			(at 213.36 219.71 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1k"
+			(at 213.36 222.25 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 213.36 227.838 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 213.36 226.06 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 213.36 226.06 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "640e9f74-9db3-4646-b8da-834ecc6c0627")
+		)
+		(pin "2"
+			(uuid "3e788b41-dab7-4ef3-9873-fe100d34d855")
+		)
+		(instances
+			(project "drone-v0"
+				(path "/53791211-d489-4051-9dbb-0db9ed0ba3ff"
+					(reference "R15")
 					(unit 1)
 				)
 			)
@@ -16434,6 +16882,72 @@
 			(project ""
 				(path "/53791211-d489-4051-9dbb-0db9ed0ba3ff"
 					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 220.98 227.33 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "a6d29dba-5b8c-47de-a2e8-ccf3d4c0d383")
+		(property "Reference" "#PWR047"
+			(at 220.98 233.68 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 220.98 232.41 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 220.98 227.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 220.98 227.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 220.98 227.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "fdd54c0a-d0b1-4ffb-b64f-073b0d1bb323")
+		)
+		(instances
+			(project "drone-v0"
+				(path "/53791211-d489-4051-9dbb-0db9ed0ba3ff"
+					(reference "#PWR047")
 					(unit 1)
 				)
 			)
