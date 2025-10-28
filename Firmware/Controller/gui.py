@@ -1,17 +1,16 @@
 #TO DO:
 # Fill roll and pitch gauges based on the variables
-# Add text version of the info
 # Add Barometer bar
 # Add drone visualisation
+
 import pygame
 import pygame_gui
 import math
 import Input
+ 
 
 pygame.init()
 pygame.joystick.init()
-Input.controller_init()
-from Input import controller
 
 #Diverse variables
 thrust = 00
@@ -68,7 +67,7 @@ pitch_gauge = pygame.image.load('Firmware/Controller/Gui elements/Gauge_pitch_te
 
 roll_text = gauge_text.render("Roll", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 roll_gauge_back = pygame.image.load('Firmware/Controller/Gui elements/Gauge_template_empty.png')
-roll_gauge = pygame.image.load('Firmware/Controller/Gui elements/Gauge_rol_text.png')
+roll_gauge = pygame.image.load('Firmware/Controller/Gui elements/Gauge_roll_text.png')
 
 heading_text = gauge_text.render("Heading", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 heading_gauge_back = pygame.image.load('Firmware/Controller/Gui elements/Gauge_template_empty.png')
@@ -130,8 +129,8 @@ def draw_gauges():
     window.blit(battery_voltage, (670, 450))
     window.blit(battery_current, (670, 470))
 
-def draw_text_view():
 
+def draw_text_view():
     pitch_value  = gauge_text.render(f"Pitch: {pitch} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     heading_value  = gauge_text.render(f"Heading: {round(heading,0)} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     roll_value  = gauge_text.render(f"Roll: {roll} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
@@ -157,7 +156,12 @@ is_running = True
 
 while is_running:
     time_delta = clock.tick(60)/1000.0
+    Input.Is_controller_attatched()
 
+    if(thrust > 200):
+        thrust = 200
+    elif (thrust < 0):
+        thrust = 0
     #Initial fram draw
     pygame.draw.rect(window,"#C0C0C0", [0, 0, 800, 600],0)
     if (text_gui):
@@ -166,10 +170,11 @@ while is_running:
         draw_gauges()
 
     #Continous controller handler
-    if controller.get_button(9): #Bumper L pushed
-                heading -= 20 * time_delta
-    if controller.get_button(10): #Bumper R pushed
-                heading += 20 * time_delta
+    if(Input.controller != None):
+        if Input.controller.get_button(9): #Bumper L pushed
+                    heading -= 20 * time_delta
+        if Input.controller.get_button(10): #Bumper R pushed
+                    heading += 20 * time_delta
 
     #Event handler
     for event in pygame.event.get():
@@ -219,43 +224,43 @@ while is_running:
 
 
         #Controller events
-        if event.type == pygame.JOYBUTTONDOWN:
+        if((event.type == pygame.JOYBUTTONDOWN) and (Input.controller != None)):
             #Switch pro controller buttons
-            if controller.get_button(0): #Button A pushed
+            if Input.controller.get_button(0): #Button A pushed
                 print("Button A pushed")
-            if controller.get_button(1): #Button B pushed
+            if Input.controller.get_button(1): #Button B pushed
                 print("Button B pushed")
-            if controller.get_button(2): #Button X pushed
+            if Input.controller.get_button(2): #Button X pushed
                 print("Button X pushed")
-            if controller.get_button(3): #Button Y pushed
+            if Input.controller.get_button(3): #Button Y pushed
                 print("Button Y pushed") 
-            if controller.get_button(4): #Button - pushed
+            if Input.controller.get_button(4): #Button - pushed
                 print("Button - pushed")
-            if controller.get_button(5): #Button Home pushed
+            if Input.controller.get_button(5): #Button Home pushed
                 print("Button Home pushed")
-            if controller.get_button(6): #Button + pushed
+            if Input.controller.get_button(6): #Button + pushed
                 print("Button + pushed")
-            if controller.get_button(7): #Button L3 pushed
+            if Input.controller.get_button(7): #Button L3 pushed
                 print("Button L3 pushed")
-            if controller.get_button(8): #Button R3 pushed
+            if Input.controller.get_button(8): #Button R3 pushed
                 print("Button R3 pushed")
-            if controller.get_button(11):#Dpad up pushed
+            if Input.controller.get_button(11):#Dpad up pushed
                 thrust_level += 10
-            if controller.get_button(12):#Dpad down pushed
+            if Input.controller.get_button(12):#Dpad down pushed
                 thrust_level -= 10
-            if controller.get_button(13):#Dpad Left pushed
+            if Input.controller.get_button(13):#Dpad Left pushed
                 heading -= 5
-            if controller.get_button(14):#Dpad Right pushed
+            if Input.controller.get_button(14):#Dpad Right pushed
                 heading += 5
-            if controller.get_button(15):#Button screnshot pushed
+            if Input.controller.get_button(15):#Button screnshot pushed
                 text_gui = not text_gui
 
         #Joystick event
-        if event.type == pygame.JOYAXISMOTION:
-            left_x_axis = controller.get_axis(0)
-            Left_y_axis = controller.get_axis(1)*-1
-            right_x_axis = controller.get_axis(2)
-            thrust = ((controller.get_axis(3)*-1)+1)* thrust_level #Left stick up and down
+        if((event.type == pygame.JOYAXISMOTION) and (Input.controller != None)):
+            left_x_axis = Input.controller.get_axis(0)
+            Left_y_axis = Input.controller.get_axis(1)*-1
+            right_x_axis = Input.controller.get_axis(2)
+            thrust = ((Input.controller.get_axis(3)*-1)+1)* thrust_level #Left stick up and down
 
 
 

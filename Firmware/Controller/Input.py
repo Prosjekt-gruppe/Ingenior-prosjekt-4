@@ -3,14 +3,27 @@ import time
 
 pygame.init()
 pygame.joystick.init()
+controller = None
 def controller_init():
-    # List the available joystick devices
     global controller
-    controller = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
+    if pygame.joystick.get_count() > 0:
+        controller = pygame.joystick.Joystick(0)
+        controller.init()
+        print(f"Controller connected: {controller.get_name()}")
+    else:
+        print("No controller detected.")
 
-    # Initialize all detected joysticks
-    for controller in controller:
-        print(f"Joystick {controller.get_instance_id()}: {controller.get_name()}")
+
+def Is_controller_attatched():
+    global controller
+    if pygame.joystick.get_count() > 0:
+        if (controller == None):
+            print("Controller detected, initializing...")
+            controller_init()
+    else:
+        if (controller != None):
+            print("Controller disconnected!")
+            controller = None
 
 times = 0
 # Example: Print the position of the left and right analog sticks for all detected joysticks
