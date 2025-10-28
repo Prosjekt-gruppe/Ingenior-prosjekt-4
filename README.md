@@ -5,5 +5,8 @@
 Search and rescue<br>
 **Size:**<br>
 28.5cm propeller to opposite propeller<br>
-**Price:**<br>
+20cmx20cm PCB design FC-controller & PDB <br> 
+**Budget:**<br>
 3000 Nok
+
+
