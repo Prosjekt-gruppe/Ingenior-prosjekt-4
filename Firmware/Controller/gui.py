@@ -90,7 +90,6 @@ def draw_gauges():
     window.blit(pitch_gauge, (35,50))
     window.blit(pitch_text, (79,30))
 
-    
     #Roll gauge
     window.blit(roll_gauge_back, (35,200))
     window.blit(roll_gauge, (35,200))
@@ -264,9 +263,7 @@ while is_running:
 
 
 
-
         manager.process_events(event)
-
 
     manager.update(time_delta)
     window_surface.blit(window, (0, 0))
