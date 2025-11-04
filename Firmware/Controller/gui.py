@@ -23,21 +23,12 @@ current = 1#A
 prev_voltage = 1#V
 prev_current = 0#A
 altitude = 10 #m
-min_altitude = -5
-max_altitude = 10
 
-# Gauge dimensions
-gauge_width = 100
-gauge_height = 200
-pixels_per_meter = gauge_height / (max_altitude - min_altitude)
-gauge_x = 600
-gauge_y = 120
-
+text_gui = False
 
 
 gauge_text = pygame.font.SysFont("Arial", 16)
 
-text_gui = True
 Gui_button_text = "Text GUI"
 pygame.display.set_caption("Drone GUI")
 
@@ -88,6 +79,7 @@ battery_text = gauge_text.render("Battery status:", True, (0, 0, 0)) # Text, Ant
 battery_voltage = gauge_text.render(f"Voltage: {voltage}V", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 battery_current = gauge_text.render(f"Current: {current}A", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 
+altitude_text = gauge_text.render("Altitude", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 
 background = pygame.image.load("Firmware/Controller/Gui elements/Background.png")
 #Bottom button creation
@@ -125,15 +117,15 @@ def draw_gauges():
 
     #Thruster level gauge drawing
     max_height = 335
-    bar_bottom_y = 340  # bottom of the gauge
+    bar_bottom_y = 415  # bottom of the gauge
     # calculate the current height of the thrust bar based on thrust value
     current_height = min(thrust, max_height)
     # calculate the top-left y coordinate so it grows upwards
     top_y = bar_bottom_y - current_height
     # draw the rectangle
     pygame.draw.rect(window, (255, 0, 0), [700, top_y-20, 40, current_height], 0)
-    window.blit(thruster_gauge, (700,100))
-    window.blit(thrust_text, (672, 75))
+    window.blit(thruster_gauge, (700,175))
+    window.blit(thrust_text, (680, 160))
 
     #Update battery text
     battery_voltage = gauge_text.render(f"Voltage: {voltage}V", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
@@ -164,42 +156,58 @@ def draw_text_view():
     window.blit(battery_current, (10, 470))
 
 
-# Create a surface for the full altitude strip
-def draw_barometer_surface(min_altitude, max_altitude):
-    surface_height = gauge_height
-    surface = pygame.Surface((gauge_width, surface_height))
-    surface.fill((220, 220, 220))
+def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font):
+    global altitude
+    # Background
+    #pygame.draw.rect(surface, "#9e9e9e" , (x, y, width, height))
+    pygame.draw.rect(surface, (0, 0, 0), (x, y, width, height), 2)
 
+    # Scale setup
     total_range = max_altitude - min_altitude
-    pixels_per_meter = gauge_height / total_range
+    pixels_per_meter = height / total_range
 
-    zero_y = int(-min_altitude * pixels_per_meter)
+    # Tick spacing
+    if total_range > 500:
+        tick_step = 100
+    elif total_range > 200:
+        tick_step = 50
+    elif total_range > 50:
+        tick_step = 10
+    elif total_range > 20:
+        tick_step = 5
+    else:
+        tick_step = 1
 
-    # Draw visible ticks
-    for alt in range(min_altitude, max_altitude + 1):
-        y = zero_y - int(alt * pixels_per_meter)
-        if 0 <= y < gauge_height:  # only draw ticks in visible range
-            pygame.draw.line(surface, (0, 0, 0), (0, y), (20, y), 1)
-            if alt % 10 == 0:
-                text = gauge_text.render(str(alt), True, (0, 0, 0))
-                surface.blit(text, (25, y-8))
-    return surface
+    # Draw tick marks and labels
+    for alt in range(0, int(max_altitude) + 1, tick_step):
+        y_pos = y + height - (alt - min_altitude) * pixels_per_meter
+        if y <= y_pos <= y + height:
+            # Left tick
+            pygame.draw.line(surface, (0, 0, 0), (x, y_pos), (x + 15, y_pos), 1)
+            # Right tick
+            pygame.draw.line(surface, (0, 0, 0), (x + width - 15, y_pos), (x + width, y_pos), 1)
+            # Label on the left/outside
+            label = font.render(f"{alt}", True, (0, 0, 0))
+            label_rect = label.get_rect(midright=(x - 5, y_pos))
+            surface.blit(label, label_rect)
 
-barometer_surface = draw_barometer_surface(min_altitude, max_altitude)
+    # --- Compute the marker position ---
+    zero_y = y + height - (0 - min_altitude) * pixels_per_meter
+    if altitude < 0:
+        red_y = zero_y
+    else:
+        red_y = y + height - (altitude - min_altitude) * pixels_per_meter
+        red_y = max(y, min(red_y, y + height))
 
-def draw_barometer(current_alt, surface):
-    # Scroll so current altitude is in the middle
-    y_offset = surface.get_height() - int((current_alt - min_altitude) * pixels_per_meter) - gauge_height // 2
-    y_offset = max(0, min(y_offset, surface.get_height() - gauge_height))
+    # Draw red indicator
+    pygame.draw.rect(surface, (255, 0, 0), (x, red_y - 1, width, 2))
 
-    # Clear gauge area
-    pygame.draw.rect(window, (100, 100, 100), (gauge_x, gauge_y, 100, gauge_height))
+    # Numeric readout (shows true altitude, can also be placed outside)
+    text = font.render(f"{altitude:.1f} m", True, (0, 0, 0))
+    text_rect = text.get_rect(midleft=(x + width - 60, red_y-5))
+    surface.blit(text, text_rect)
+    surface.blit(altitude_text,(x+10,y-40))
 
-    # Blit scrolling portion
-    window.blit(surface, (gauge_x, gauge_y), area=pygame.Rect(0, y_offset, 100, gauge_height))
-
-    # Red marker for current altitude
-    pygame.draw.rect(window, (255, 0, 0), (gauge_x, gauge_y + gauge_height // 2 - 1, 100, 2))
 
 
 
@@ -221,7 +229,7 @@ while is_running:
         draw_text_view()
     else:
         draw_gauges()
-        draw_barometer(altitude, barometer_surface)
+        draw_barometer(window,-10, 300, 600, 200, 75, 200, gauge_text)
 
     #Continous controller handler
     if(Input.controller != None):
@@ -262,9 +270,11 @@ while is_running:
                     thrust_level -= 1
                     print(f"Thrust down!\nThrust is now {thrust}")
                 elif event.key == pygame.K_KP8:
-                    altitude += 10
+                    altitude += 0.5
+                    print(f"altitude up")
                 elif event.key == pygame.K_KP2:
-                    altitude -= 10
+                    altitude -= 0.5
+                    print(f"altitude down")
         
         #UI events
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
