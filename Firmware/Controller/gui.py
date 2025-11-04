@@ -18,11 +18,22 @@ thrust_level = 100
 heading = 0
 pitch = 0
 roll = 0
-voltage = 2
-current = 1
-prev_voltage = 1
-prev_current = 0
-height = 10
+voltage = 2#V
+current = 1#A
+prev_voltage = 1#V
+prev_current = 0#A
+altitude = 10 #m
+min_altitude = -5
+max_altitude = 10
+
+# Gauge dimensions
+gauge_width = 100
+gauge_height = 200
+pixels_per_meter = gauge_height / (max_altitude - min_altitude)
+gauge_x = 600
+gauge_y = 120
+
+
 
 gauge_text = pygame.font.SysFont("Arial", 16)
 
@@ -77,6 +88,8 @@ battery_text = gauge_text.render("Battery status:", True, (0, 0, 0)) # Text, Ant
 battery_voltage = gauge_text.render(f"Voltage: {voltage}V", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 battery_current = gauge_text.render(f"Current: {current}A", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
 
+
+background = pygame.image.load("Firmware/Controller/Gui elements/Background.png")
 #Bottom button creation
 hello_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Thruster speed', manager=manager)
 Gui_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((265, 500), (273, 100)), text=Gui_button_text, manager=manager)
@@ -85,6 +98,7 @@ controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 5
 
 #Draw gauges
 def draw_gauges():
+    window.blit(background,(0,0))
     #Pitch gauge
     window.blit(pitch_gauge_back, (35,50))
     window.blit(pitch_gauge, (35,50))
@@ -109,7 +123,7 @@ def draw_gauges():
     window.blit(heading_gauge, (35,350))
     window.blit(heading_text, (67, 330))
 
-    pygame.draw.rect(window, (255, 0, 0), [700, 320, 40, 20], 0)
+    #Thruster level gauge drawing
     max_height = 335
     bar_bottom_y = 340  # bottom of the gauge
     # calculate the current height of the thrust bar based on thrust value
@@ -130,11 +144,12 @@ def draw_gauges():
 
 
 def draw_text_view():
+    window.blit(background,(0,0))
     pitch_value  = gauge_text.render(f"Pitch: {pitch} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     heading_value  = gauge_text.render(f"Heading: {round(heading,0)} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     roll_value  = gauge_text.render(f"Roll: {roll} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     thrust_value  = gauge_text.render(f"Thrust: {round(thrust/2,0)}%", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
-    height_value  = gauge_text.render(f"Height: {round(height)}m", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    height_value  = gauge_text.render(f"Height: {round(altitude)}m", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     window.blit(pitch_value,(10,30))
     window.blit(roll_value,(10,50))
     window.blit(heading_value,(10,70))
@@ -149,24 +164,64 @@ def draw_text_view():
     window.blit(battery_current, (10, 470))
 
 
+# Create a surface for the full altitude strip
+def draw_barometer_surface(min_altitude, max_altitude):
+    surface_height = gauge_height
+    surface = pygame.Surface((gauge_width, surface_height))
+    surface.fill((220, 220, 220))
+
+    total_range = max_altitude - min_altitude
+    pixels_per_meter = gauge_height / total_range
+
+    zero_y = int(-min_altitude * pixels_per_meter)
+
+    # Draw visible ticks
+    for alt in range(min_altitude, max_altitude + 1):
+        y = zero_y - int(alt * pixels_per_meter)
+        if 0 <= y < gauge_height:  # only draw ticks in visible range
+            pygame.draw.line(surface, (0, 0, 0), (0, y), (20, y), 1)
+            if alt % 10 == 0:
+                text = gauge_text.render(str(alt), True, (0, 0, 0))
+                surface.blit(text, (25, y-8))
+    return surface
+
+barometer_surface = draw_barometer_surface(min_altitude, max_altitude)
+
+def draw_barometer(current_alt, surface):
+    # Scroll so current altitude is in the middle
+    y_offset = surface.get_height() - int((current_alt - min_altitude) * pixels_per_meter) - gauge_height // 2
+    y_offset = max(0, min(y_offset, surface.get_height() - gauge_height))
+
+    # Clear gauge area
+    pygame.draw.rect(window, (100, 100, 100), (gauge_x, gauge_y, 100, gauge_height))
+
+    # Blit scrolling portion
+    window.blit(surface, (gauge_x, gauge_y), area=pygame.Rect(0, y_offset, 100, gauge_height))
+
+    # Red marker for current altitude
+    pygame.draw.rect(window, (255, 0, 0), (gauge_x, gauge_y + gauge_height // 2 - 1, 100, 2))
+
+
+
+
 clock = pygame.time.Clock()
 is_running = True
-
-
 while is_running:
     time_delta = clock.tick(60)/1000.0
-    Input.Is_controller_attatched()
+    Input.Is_controller_attatched() #Checks for a connected controller every loop
 
     if(thrust > 200):
         thrust = 200
     elif (thrust < 0):
         thrust = 0
+
     #Initial fram draw
-    pygame.draw.rect(window,"#C0C0C0", [0, 0, 800, 600],0)
+    pygame.draw.rect(window,"#C0C0C0", [0, 0, 800, 600],0)#clear screen for clean redraw
     if (text_gui):
         draw_text_view()
     else:
         draw_gauges()
+        draw_barometer(altitude, barometer_surface)
 
     #Continous controller handler
     if(Input.controller != None):
@@ -206,6 +261,10 @@ while is_running:
                 elif (event.key == pygame.K_DOWN and thrust_level > 0):
                     thrust_level -= 1
                     print(f"Thrust down!\nThrust is now {thrust}")
+                elif event.key == pygame.K_KP8:
+                    altitude += 10
+                elif event.key == pygame.K_KP2:
+                    altitude -= 10
         
         #UI events
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
