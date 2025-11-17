@@ -7,7 +7,9 @@ import pygame
 import pygame_gui
 import math
 import Input
- 
+import serial
+import threading
+import time
 
 pygame.init()
 pygame.joystick.init()
@@ -33,6 +35,23 @@ Gui_button_text = "Text GUI"
 pygame.display.set_caption("Drone GUI")
 
 window_surface = pygame.display.set_mode((800, 600))
+
+
+#Drone communication
+def send_data(ser):
+        msg = "Controller data.\n"
+        ser.write(msg.encode('utf-8'))
+        print(f"Data sendt")
+        
+
+def receive_data(ser):
+    while True:
+        if ser.in_waiting > 0:
+            received_data = ser.readline().decode().strip()
+            print(f"Received: {received_data}")
+
+
+
 
 
 def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
@@ -182,9 +201,8 @@ def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font
     for alt in range(0, int(max_altitude) + 1, tick_step):
         y_pos = y + height - (alt - min_altitude) * pixels_per_meter
         if y <= y_pos <= y + height:
-            # Left tick
+            #Gauge notches
             pygame.draw.line(surface, (0, 0, 0), (x, y_pos), (x + 15, y_pos), 1)
-            # Right tick
             pygame.draw.line(surface, (0, 0, 0), (x + width - 15, y_pos), (x + width, y_pos), 1)
             # Label on the left/outside
             label = font.render(f"{alt}", True, (0, 0, 0))
@@ -209,6 +227,16 @@ def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font
     surface.blit(altitude_text,(x+10,y-40))
 
 
+
+# bound rate on two ports must be the same
+#Chane to runtime check
+ser = serial.Serial('/dev/ttyUSB0', 115200)
+print(ser.portstr)
+time.sleep(0.5)
+tx = threading.Thread(target=send_data, args=(ser,))
+rx = threading.Thread(target=receive_data, args=(ser,), daemon=True)
+tx.start()
+rx.start()
 
 
 
