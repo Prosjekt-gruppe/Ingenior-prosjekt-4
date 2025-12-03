@@ -28,7 +28,7 @@ prev_current = 0#A
 altitude = 10 #m
 
 text_gui = False
-
+settings_gui = False
 
 gauge_text = pygame.font.SysFont("Arial", 16)
 
@@ -101,7 +101,7 @@ altitude_text = gauge_text.render("Altitude", True, (0, 0, 0)) # Text, Antialias
 
 background = pygame.image.load("Firmware/Controller/Gui elements/Background.png")
 #Bottom button creation
-hello_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Thruster speed', manager=manager)
+Settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Settings', manager=manager)
 Gui_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((265, 500), (273, 100)), text=Gui_button_text, manager=manager)
 controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Toggle Controller', manager=manager)
 
@@ -254,6 +254,8 @@ while is_running:
     pygame.draw.rect(window,"#C0C0C0", [0, 0, 800, 600],0)#clear screen for clean redraw
     if (text_gui):
         draw_text_view()
+    elif(settings_gui):
+        print("")
     else:
         draw_gauges()
         draw_barometer(window,-10, 300, 600, 200, 75, 200, gauge_text)
@@ -305,10 +307,12 @@ while is_running:
         
         #UI events
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
-            if event.ui_element == hello_button:
-                thrust = thrust + 10
+            if event.ui_element == Settings_button:
+                settings_gui = not settings_gui
+                text_gui = False
             if event.ui_element == Gui_button:
                 text_gui = not text_gui
+                settings_gui = False
                 if (text_gui):
                     Gui_button.set_text("Visual GUI")
                 else:
