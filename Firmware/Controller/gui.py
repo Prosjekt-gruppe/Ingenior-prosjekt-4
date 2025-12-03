@@ -108,6 +108,7 @@ controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 5
 
 #Draw gauges
 def draw_gauges():
+    pygame.display.set_caption("Normal view")
     window.blit(background,(0,0))
     #Pitch gauge
     window.blit(pitch_gauge_back, (35,50))
@@ -154,6 +155,7 @@ def draw_gauges():
 
 
 def draw_text_view():
+    pygame.display.set_caption("Text view")
     window.blit(background,(0,0))
     pitch_value  = gauge_text.render(f"Pitch: {pitch} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     heading_value  = gauge_text.render(f"Heading: {round(heading,0)} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
@@ -173,6 +175,10 @@ def draw_text_view():
     window.blit(battery_voltage, (10, 450))
     window.blit(battery_current, (10, 470))
 
+
+def draw_settings_view():
+        pygame.display.set_caption("Settings")
+        window.blit(background,(0,0))
 
 def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font):
     global altitude
@@ -245,6 +251,16 @@ while is_running:
     time_delta = clock.tick(60)/1000.0
     Input.Is_controller_attatched() #Checks for a connected controller every loop
 
+    if(text_gui):
+        Gui_button.set_text("Visual GUI")
+        Settings_button.set_text("Settings")
+    elif(settings_gui):
+        Settings_button.set_text("Visual GUI")
+        Gui_button.set_text("Text Gui")
+    else:
+        Settings_button.set_text("Settings")
+        Gui_button.set_text("Text Gui")
+
     if(thrust > 200):
         thrust = 200
     elif (thrust < 0):
@@ -255,7 +271,7 @@ while is_running:
     if (text_gui):
         draw_text_view()
     elif(settings_gui):
-        print("")
+        draw_settings_view()
     else:
         draw_gauges()
         draw_barometer(window,-10, 300, 600, 200, 75, 200, gauge_text)
@@ -310,13 +326,10 @@ while is_running:
             if event.ui_element == Settings_button:
                 settings_gui = not settings_gui
                 text_gui = False
+                Settings_button.set_text("Visual GUI")
             if event.ui_element == Gui_button:
                 text_gui = not text_gui
                 settings_gui = False
-                if (text_gui):
-                    Gui_button.set_text("Visual GUI")
-                else:
-                    Gui_button.set_text("Text GUI")
                 print(f"Gui switch is pressed and text state is {text_gui}")
             if event.ui_element == controll_button:
                 print('Controller enabled')
