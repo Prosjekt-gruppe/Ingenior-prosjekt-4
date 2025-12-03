@@ -308,12 +308,15 @@ while is_running:
     pygame.draw.rect(window,"#C0C0C0", [0, 0, 800, 600],0)#clear screen for clean redraw
     if (text_gui):
         draw_text_view()
+        baudrate_dropdown.hide()
     elif(settings_gui):
         draw_settings_view()
+        baudrate_dropdown.show()
     else:
         draw_gauges()
         draw_barometer(window,-10, 300, 600, 200, 75, 200, gauge_text)
-
+        baudrate_dropdown.hide()
+        
     #Continous controller handler
     if(Input.controller != None):
         if Input.controller.get_button(9): #Bumper L pushed
