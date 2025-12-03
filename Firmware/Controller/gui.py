@@ -31,7 +31,7 @@ altitude = 10 #m
 text_gui = False
 settings_gui = False
 baudrate = 9600
-com_port = "dev/ttyUSB0"
+com_port = ""
 gauge_text = pygame.font.SysFont("Arial", 16)
 
 Gui_button_text = "Text GUI"
