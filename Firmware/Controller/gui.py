@@ -10,6 +10,7 @@ import Input
 import serial
 import threading
 import time
+import json
 
 pygame.init()
 pygame.joystick.init()
@@ -49,8 +50,6 @@ def receive_data(ser):
         if ser.in_waiting > 0:
             received_data = ser.readline().decode().strip()
             print(f"Received: {received_data}")
-
-
 
 
 
