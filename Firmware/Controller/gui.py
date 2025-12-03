@@ -11,6 +11,7 @@ import serial
 import threading
 import time
 import json
+from serial.tools import list_ports
 
 pygame.init()
 pygame.joystick.init()
@@ -29,10 +30,15 @@ altitude = 10 #m
 
 text_gui = False
 settings_gui = False
-
+baudrate = 9600
+com_port = "dev/ttyUSB0"
 gauge_text = pygame.font.SysFont("Arial", 16)
 
 Gui_button_text = "Text GUI"
+com_buttons = []
+selected_port = None
+baudrate_options = ["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"]
+
 pygame.display.set_caption("Drone GUI")
 
 window_surface = pygame.display.set_mode((800, 600))
@@ -51,7 +57,25 @@ def receive_data(ser):
             received_data = ser.readline().decode().strip()
             print(f"Received: {received_data}")
 
+def create_com_buttons():
+    global com_buttons
+    for b in com_buttons:
+        b.kill()
+    com_buttons = []
 
+    ports = list_ports.comports()
+
+    y = 100
+    for p in ports:
+        # Filter: ignore ports without a meaningful description
+        if p.description and p.description.lower() != "n/a":
+            btn = pygame_gui.elements.UIButton(
+                relative_rect=pygame.Rect((310, y), (300, 30)),
+                text=f"{p.device}  -  {p.description}",
+                manager=manager
+            )
+            com_buttons.append(btn)
+            y += 40
 
 def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
     start_angle = math.radians(0-90)          # -90 so 0° is at top
@@ -104,6 +128,12 @@ background = pygame.image.load("Firmware/Controller/Gui elements/Background.png"
 Settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Settings', manager=manager)
 Gui_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((265, 500), (273, 100)), text=Gui_button_text, manager=manager)
 controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Toggle Controller', manager=manager)
+baudrate_dropdown = pygame_gui.elements.UIDropDownMenu(
+    options_list=baudrate_options,
+    starting_option=str(baudrate),
+    relative_rect=pygame.Rect((390, 30), (120, 25)),
+    manager=manager
+)
 
 
 #Draw gauges
@@ -177,8 +207,15 @@ def draw_text_view():
 
 
 def draw_settings_view():
-        pygame.display.set_caption("Settings")
-        window.blit(background,(0,0))
+    pygame.display.set_caption("Settings")
+    window.blit(background,(0,0))
+    baud_text  = gauge_text.render(f"Baudrate: ", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    Com_port_text  = gauge_text.render(f"COM Port:", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    Com_port_current  = gauge_text.render(f"{com_port}", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    pygame.draw.rect(window,"#A1A1A1", (390, 60, 90, 25), 0)
+    window.blit(baud_text, (310, 30))
+    window.blit(Com_port_text, (310, 60))
+    window.blit(Com_port_current, (390, 60))
 
 def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font):
     global altitude
@@ -257,6 +294,7 @@ while is_running:
     elif(settings_gui):
         Settings_button.set_text("Visual GUI")
         Gui_button.set_text("Text Gui")
+        create_com_buttons()
     else:
         Settings_button.set_text("Settings")
         Gui_button.set_text("Text Gui")
@@ -287,6 +325,11 @@ while is_running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
+        if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+            if event.ui_element == baudrate_dropdown:
+                baudrate = int(event.text)
+                print("Baudrate changed to:", baudrate)
+
         
         #Keypress events
         if event.type == pygame.KEYDOWN:
