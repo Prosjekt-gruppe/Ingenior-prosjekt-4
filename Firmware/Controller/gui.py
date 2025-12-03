@@ -10,6 +10,8 @@ import Input
 import serial
 import threading
 import time
+import json
+from serial.tools import list_ports
 
 pygame.init()
 pygame.joystick.init()
@@ -27,11 +29,16 @@ prev_current = 0#A
 altitude = 10 #m
 
 text_gui = False
-
-
+settings_gui = False
+baudrate = 9600
+com_port = "dev/ttyUSB0"
 gauge_text = pygame.font.SysFont("Arial", 16)
 
 Gui_button_text = "Text GUI"
+com_buttons = []
+selected_port = None
+baudrate_options = ["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"]
+
 pygame.display.set_caption("Drone GUI")
 
 window_surface = pygame.display.set_mode((800, 600))
@@ -50,9 +57,25 @@ def receive_data(ser):
             received_data = ser.readline().decode().strip()
             print(f"Received: {received_data}")
 
+def create_com_buttons():
+    global com_buttons
+    for b in com_buttons:
+        b.kill()
+    com_buttons = []
 
+    ports = list_ports.comports()
 
-
+    y = 100
+    for p in ports:
+        # Filter: ignore ports without a meaningful description
+        if p.description and p.description.lower() != "n/a":
+            btn = pygame_gui.elements.UIButton(
+                relative_rect=pygame.Rect((310, y), (300, 30)),
+                text=f"{p.device}  -  {p.description}",
+                manager=manager
+            )
+            com_buttons.append(btn)
+            y += 40
 
 def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
     start_angle = math.radians(0-90)          # -90 so 0° is at top
@@ -102,13 +125,20 @@ altitude_text = gauge_text.render("Altitude", True, (0, 0, 0)) # Text, Antialias
 
 background = pygame.image.load("Firmware/Controller/Gui elements/Background.png")
 #Bottom button creation
-hello_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Thruster speed', manager=manager)
+Settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Settings', manager=manager)
 Gui_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((265, 500), (273, 100)), text=Gui_button_text, manager=manager)
 controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Toggle Controller', manager=manager)
+baudrate_dropdown = pygame_gui.elements.UIDropDownMenu(
+    options_list=baudrate_options,
+    starting_option=str(baudrate),
+    relative_rect=pygame.Rect((390, 30), (120, 25)),
+    manager=manager
+)
 
 
 #Draw gauges
 def draw_gauges():
+    pygame.display.set_caption("Normal view")
     window.blit(background,(0,0))
     #Pitch gauge
     window.blit(pitch_gauge_back, (35,50))
@@ -155,6 +185,7 @@ def draw_gauges():
 
 
 def draw_text_view():
+    pygame.display.set_caption("Text view")
     window.blit(background,(0,0))
     pitch_value  = gauge_text.render(f"Pitch: {pitch} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
     heading_value  = gauge_text.render(f"Heading: {round(heading,0)} deg", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
@@ -174,6 +205,17 @@ def draw_text_view():
     window.blit(battery_voltage, (10, 450))
     window.blit(battery_current, (10, 470))
 
+
+def draw_settings_view():
+    pygame.display.set_caption("Settings")
+    window.blit(background,(0,0))
+    baud_text  = gauge_text.render(f"Baudrate: ", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    Com_port_text  = gauge_text.render(f"COM Port:", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    Com_port_current  = gauge_text.render(f"{com_port}", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
+    pygame.draw.rect(window,"#A1A1A1", (390, 60, 90, 25), 0)
+    window.blit(baud_text, (310, 30))
+    window.blit(Com_port_text, (310, 60))
+    window.blit(Com_port_current, (390, 60))
 
 def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font):
     global altitude
@@ -246,6 +288,17 @@ while is_running:
     time_delta = clock.tick(60)/1000.0
     Input.Is_controller_attatched() #Checks for a connected controller every loop
 
+    if(text_gui):
+        Gui_button.set_text("Visual GUI")
+        Settings_button.set_text("Settings")
+    elif(settings_gui):
+        Settings_button.set_text("Visual GUI")
+        Gui_button.set_text("Text Gui")
+        create_com_buttons()
+    else:
+        Settings_button.set_text("Settings")
+        Gui_button.set_text("Text Gui")
+
     if(thrust > 200):
         thrust = 200
     elif (thrust < 0):
@@ -255,10 +308,15 @@ while is_running:
     pygame.draw.rect(window,"#C0C0C0", [0, 0, 800, 600],0)#clear screen for clean redraw
     if (text_gui):
         draw_text_view()
+        baudrate_dropdown.hide()
+    elif(settings_gui):
+        draw_settings_view()
+        baudrate_dropdown.show()
     else:
         draw_gauges()
         draw_barometer(window,-10, 300, 600, 200, 75, 200, gauge_text)
-
+        baudrate_dropdown.hide()
+        
     #Continous controller handler
     if(Input.controller != None):
         if Input.controller.get_button(9): #Bumper L pushed
@@ -270,6 +328,11 @@ while is_running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
+        if event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+            if event.ui_element == baudrate_dropdown:
+                baudrate = int(event.text)
+                print("Baudrate changed to:", baudrate)
+
         
         #Keypress events
         if event.type == pygame.KEYDOWN:
@@ -306,14 +369,13 @@ while is_running:
         
         #UI events
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
-            if event.ui_element == hello_button:
-                thrust = thrust + 10
+            if event.ui_element == Settings_button:
+                settings_gui = not settings_gui
+                text_gui = False
+                Settings_button.set_text("Visual GUI")
             if event.ui_element == Gui_button:
                 text_gui = not text_gui
-                if (text_gui):
-                    Gui_button.set_text("Visual GUI")
-                else:
-                    Gui_button.set_text("Text GUI")
+                settings_gui = False
                 print(f"Gui switch is pressed and text state is {text_gui}")
             if event.ui_element == controll_button:
                 print('Controller enabled')
