@@ -93,13 +93,32 @@ def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
     pygame.draw.polygon(surface, color, points)
 
 
+def draw_center_out_fill(surface, center, radius, value, max_value=90, color=(128,0,0)):
+    # Clamp the value
+    value = max(-max_value, min(max_value, value))
+
+    # Determine fill width proportionally
+    fill_ratio = abs(value) / max_value
+    fill_width = radius * fill_ratio
+
+    # Create a rect for the fill
+    if value > 0:
+        fill_rect = pygame.Rect(center[0], center[1]-radius, fill_width, radius*2)
+    else:
+        fill_rect = pygame.Rect(center[0]-fill_width, center[1]-radius, fill_width, radius*2)
+
+    # Draw the fill
+    pygame.draw.rect(surface, color, fill_rect)
+
+
+
+
+
+
+
 window = pygame.Surface((800, 600))
 window.fill(pygame.Color("#C0C0C0"))
 manager = pygame_gui.UIManager((800, 600))
-
-#Flight path
-
-
 
 #Gauges init
 thrust_text = gauge_text.render("Thrust power", True, (0, 0, 0)) # Text, Antialiasing, Color (RGB)
@@ -149,6 +168,7 @@ def draw_gauges():
     window.blit(roll_gauge_back, (35,200))
     window.blit(roll_gauge, (35,200))
     window.blit(roll_text, (80, 180))
+    draw_center_out_fill(window, center=(95, 260), radius=59, value=roll, max_value=90, color=(255,0,0))     
 
     #Heading gauge
     window.blit(heading_gauge_back, (35,350))
