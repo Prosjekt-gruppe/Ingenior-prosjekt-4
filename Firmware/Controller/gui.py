@@ -1,8 +1,3 @@
-#TO DO:
-# Fill roll and pitch gauges based on the variables
-# Add Barometer bar
-# Add drone visualisation
-
 import pygame
 import pygame_gui
 import math
@@ -111,6 +106,21 @@ def draw_center_out_fill(surface, center, radius, value, max_value=90, color=(12
     pygame.draw.rect(surface, color, fill_rect)
 
 
+def draw_center_out_fill_vertical(surface, center, radius, value, max_value=90, color=(255,0,0)):
+    # Clamp value
+    value = max(-max_value, min(max_value, value))
+    # Determine proportional height
+    fill_ratio = abs(value) / max_value
+    fill_height = radius * fill_ratio
+    # Create the rect
+    if value > 0:
+        # positive = upwards
+        fill_rect = pygame.Rect(center[0]-radius, center[1]-fill_height, radius*2, fill_height)
+    else:
+        # negative = downwards
+        fill_rect = pygame.Rect(center[0]-radius, center[1], radius*2, fill_height)
+
+    pygame.draw.rect(surface, color, fill_rect)
 
 
 
@@ -161,14 +171,14 @@ def draw_gauges():
     window.blit(background,(0,0))
     #Pitch gauge
     window.blit(pitch_gauge_back, (35,50))
+    draw_center_out_fill_vertical(window, center=(95, 110), radius=59, value=pitch, max_value=90, color=(255,0,0))
     window.blit(pitch_gauge, (35,50))
     window.blit(pitch_text, (79,30))
-
     #Roll gauge
     window.blit(roll_gauge_back, (35,200))
+    draw_center_out_fill(window, center=(95, 260), radius=59, value=roll, max_value=90, color=(255,0,0))     
     window.blit(roll_gauge, (35,200))
     window.blit(roll_text, (80, 180))
-    draw_center_out_fill(window, center=(95, 260), radius=59, value=roll, max_value=90, color=(255,0,0))     
 
     #Heading gauge
     window.blit(heading_gauge_back, (35,350))
