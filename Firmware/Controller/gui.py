@@ -31,6 +31,7 @@ gauge_text = pygame.font.SysFont("Arial", 16)
 
 Gui_button_text = "Text GUI"
 com_buttons = []
+com_buttons_created = False
 selected_port = None
 baudrate_options = ["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"]
 
@@ -57,20 +58,21 @@ def create_com_buttons():
     for b in com_buttons:
         b.kill()
     com_buttons = []
-
     ports = list_ports.comports()
-
     y = 100
     for p in ports:
-        # Filter: ignore ports without a meaningful description
         if p.description and p.description.lower() != "n/a":
             btn = pygame_gui.elements.UIButton(
-                relative_rect=pygame.Rect((310, y), (300, 30)),
-                text=f"{p.device}  -  {p.description}",
-                manager=manager
-            )
+            relative_rect=pygame.Rect((310, y), (300, 30)),
+            text=f"{p.device}  -  {p.description}",
+            manager=manager
+)
+            # ← lagre port-navnet på knappen!
+            btn.port_name = p.device
+
             com_buttons.append(btn)
             y += 40
+
 
 def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
     start_angle = math.radians(0-90)          # -90 so 0° is at top
@@ -91,11 +93,9 @@ def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
 def draw_center_out_fill(surface, center, radius, value, max_value=90, color=(128,0,0)):
     # Clamp the value
     value = max(-max_value, min(max_value, value))
-
     # Determine fill width proportionally
     fill_ratio = abs(value) / max_value
     fill_width = radius * fill_ratio
-
     # Create a rect for the fill
     if value > 0:
         fill_rect = pygame.Rect(center[0], center[1]-radius, fill_width, radius*2)
@@ -321,13 +321,19 @@ while is_running:
     if(text_gui):
         Gui_button.set_text("Visual GUI")
         Settings_button.set_text("Settings")
-    elif(settings_gui):
-        Settings_button.set_text("Visual GUI")
-        Gui_button.set_text("Text Gui")
-        create_com_buttons()
+        for btn in com_buttons:
+            btn.hide()
+    elif settings_gui:
+        if not com_buttons_created:
+            create_com_buttons()
+            com_buttons_created = True
+        for btn in com_buttons:
+            btn.show()
     else:
         Settings_button.set_text("Settings")
         Gui_button.set_text("Text Gui")
+        for btn in com_buttons:
+            btn.hide()
 
     if(thrust > 200):
         thrust = 200
@@ -409,6 +415,9 @@ while is_running:
                 print(f"Gui switch is pressed and text state is {text_gui}")
             if event.ui_element == controll_button:
                 print('Controller enabled')
+            if event.ui_element in com_buttons:
+                com_port = event.ui_element.port_name
+                print(f"Selected COM port: {com_port}")
 
 
         #Controller events
