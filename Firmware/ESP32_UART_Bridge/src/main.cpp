@@ -1,18 +1,11 @@
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
-
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);      // USB serial
+  Serial1.begin(115200, SERIAL_8N1, 16, 17);  // Use pins 16=RX, 17=TX
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  if (Serial.available()) Serial1.write(Serial.read());
+  if (Serial1.available()) Serial.write(Serial1.read());
 }
