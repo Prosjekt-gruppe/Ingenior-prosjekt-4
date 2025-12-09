@@ -1,214 +1,287 @@
 #include <Arduino.h>
 #include <RadioLib.h>
 
-// ----------- SX1280 / Lambda80 wiring ----------
-static const int SX_CS   = 5;
-static const int SX_DIO1 = 26;
-static const int SX_RST  = 25;
-static const int SX_BUSY = 27;
+/* ============================================================
+   Hardware Configuration
+   ============================================================ */
 
-// ESP32 hardware SPI: SCK=18, MISO=19, MOSI=23
+// SX1280 radio (Lambda80)
+static const int PIN_CS   = 5;
+static const int PIN_DIO1 = 26;
+static const int PIN_RST  = 25;
+static const int PIN_BUSY = 27;
 
-SX1280 radio = new Module(SX_CS, SX_DIO1, SX_RST, SX_BUSY);
+// UART to Betaflight flight controller
+#define FC_SERIAL      Serial1
+static const int PIN_FC_TX = 17;   // ESP32 TX → FC RX
+static const int PIN_FC_RX = 16;   // ESP32 RX ← FC TX
 
-// ----------- CRSF UART to FC ----------
-#define CRSF_SERIAL   Serial1
-static const int CRSF_TX_PIN = 17;   // ESP32 TX to FC RX
-static const int CRSF_RX_PIN = 16;   // not really used, but needed for begin()
+// Create radio instance (RadioLib)
+SX1280 radio = new Module(PIN_CS, PIN_DIO1, PIN_RST, PIN_BUSY);
 
-// ----------- Link packets -------------
-static const uint8_t CTRL_SYNC  = 0xA5;
-static const uint8_t TELE_SYNC  = 0x5A;
-static const size_t  CTRL_LEN   = 12;
-static const size_t  TELE_LEN   = 8;
+/* ============================================================
+   Protocol Definitions
+   ============================================================ */
 
-// running stats for link quality
-static uint32_t g_totalFrames = 0;
-static uint32_t g_goodFrames  = 0;
+// RF packet sync bytes
+const uint8_t SYNC_CONTROL  = 0xA5;
+const uint8_t SYNC_TELEMETRY = 0x5A;
 
-// --- CRC-8 for link packets (poly 0x8C, simple) ---
-uint8_t linkCrc8(const uint8_t* data, uint8_t len) {
-  uint8_t crc = 0x00;
+// RF packet sizes
+const size_t CONTROL_PACKET_LEN = 12;
+const size_t TELEMETRY_PACKET_LEN = 8;
+
+// CRSF constants
+const uint8_t CRSF_ADDR_FC       = 0xC8;
+const uint8_t CRSF_TYPE_RC       = 0x16;   // RC_CHANNELS_PACKED
+const uint8_t CRSF_TYPE_BATTERY  = 0x08;   // Battery sensor (voltage)
+
+/* ============================================================
+   Global State
+   ============================================================ */
+
+uint32_t totalFrames = 0;
+uint32_t goodFrames  = 0;
+
+// FC telemetry state
+uint16_t fcBatteryMv = 0;   // updated from CRSF telemetry
+
+// CRSF telemetry parsing buffer
+uint8_t  crsfBuf[64];
+uint8_t  crsfPtr = 0;
+uint8_t  crsfExpectedLength = 0;
+
+/* ============================================================
+   Utility Functions
+   ============================================================ */
+
+// --- Custom RF CRC (0x8C polynomial) ---
+uint8_t crcRF(const uint8_t *data, uint8_t len) {
+  uint8_t crc = 0;
   while (len--) {
-    uint8_t extract = *data++;
+    uint8_t in = *data++;
     for (uint8_t i = 0; i < 8; i++) {
-      uint8_t sum = (crc ^ extract) & 0x01;
+      uint8_t mix = (crc ^ in) & 0x01;
       crc >>= 1;
-      if(sum) crc ^= 0x8C;
-      extract >>= 1;
+      if (mix) crc ^= 0x8C;
+      in >>= 1;
     }
   }
   return crc;
 }
 
-// --- CRC-8 DVB-S2 for CRSF (poly 0xD5, MSB-first) ---
-uint8_t crsfCrc(const uint8_t* data, uint8_t len) {
+// --- CRSF CRC (official DVB-S2 polynomial 0xD5) ---
+uint8_t crcCRSF(const uint8_t *data, uint8_t len) {
   uint8_t crc = 0;
   while (len--) {
     crc ^= *data++;
     for (uint8_t i = 0; i < 8; i++) {
-      if (crc & 0x80) {
-        crc = (crc << 1) ^ 0xD5;
-      } else {
-        crc <<= 1;
-      }
+      crc = (crc & 0x80) ? (crc << 1) ^ 0xD5 : (crc << 1);
     }
   }
   return crc;
 }
 
-// --- map 1000..2000 us -> 0..1984 CRSF ---
-uint16_t mapUsToCrsf(int us) {
-  if (us < 1000) us = 1000;
-  if (us > 2000) us = 2000;
-  // center 1500 -> 992
-  return (uint16_t)((us - 1000) * 1984L / 1000L);
+// --- Convert RF 0..2047 -> 1000..2000 µs ---
+int rfToUs(uint16_t v) {
+  v = min(v, (uint16_t)2047);
+  return 1000 + (v * 1000L / 2047L);
 }
 
-// --- map 0..2047 (our link) -> 1000..2000 us ---
-int map11bitToUs(uint16_t v) {
-  if (v > 2047) v = 2047;
-  return 1000 + (int)(v * 1000L / 2047L);
+// --- Convert Betaflight RC us → CRSF channel value (0..1984) ---
+uint16_t usToCrsf(int us) {
+  us = constrain(us, 1000, 2000);
+  return (us - 1000) * 1984L / 1000L;
 }
 
-// --- send CRSF RC_CHANNELS_PACKED frame to FC ---
-void sendCrsfRcChannels(int rollUs, int pitchUs, int yawUs, int thrUs) {
+/* ============================================================
+   CRSF: RC Output → Flight Controller
+   ============================================================ */
+
+void sendCRSF_RC(int rollUs, int pitchUs, int yawUs, int thrUs) {
   uint32_t ch[16];
-  ch[0] = mapUsToCrsf(rollUs);
-  ch[1] = mapUsToCrsf(pitchUs);
-  ch[2] = mapUsToCrsf(yawUs);
-  ch[3] = mapUsToCrsf(thrUs);
-  // remaining channels at center (992)
+
+  // Map 4 channels
+  ch[0] = usToCrsf(rollUs);
+  ch[1] = usToCrsf(pitchUs);
+  ch[2] = usToCrsf(yawUs);
+  ch[3] = usToCrsf(thrUs);
+
+  // Pad remaining channels to center
   for (int i = 4; i < 16; i++) {
     ch[i] = 992;
   }
 
+  // Pack into CRSF 22-byte payload
   uint8_t payload[22] = {0};
-  int bitPos = 0;
+  int bitIndex = 0;
+
   for (int i = 0; i < 16; i++) {
-    uint16_t v = (ch[i] > 1984) ? 1984 : (uint16_t)ch[i];
-    for (int b = 0; b < 11; b++, bitPos++) {
-      if (v & (1 << b)) {
-        payload[bitPos >> 3] |= (1 << (bitPos & 7));
+    uint16_t val = min(ch[i], (uint32_t)1984);
+    for (int b = 0; b < 11; b++, bitIndex++) {
+      if (val & (1 << b)) {
+        payload[bitIndex >> 3] |= (1 << (bitIndex & 7));
       }
     }
   }
 
+  // Build CRSF frame
   uint8_t frame[26];
-  frame[0] = 0xC8;       // to FC
-  frame[1] = 24;         // len(type + payload + crc)
-  frame[2] = 0x16;       // RC_CHANNELS_PACKED
+  frame[0] = CRSF_ADDR_FC;
+  frame[1] = 24;                // length = type + payload + crc
+  frame[2] = CRSF_TYPE_RC;
   memcpy(&frame[3], payload, 22);
-  frame[25] = crsfCrc(&frame[2], 1 + 22); // type + payload
+  frame[25] = crcCRSF(&frame[2], 23);
 
-  CRSF_SERIAL.write(frame, sizeof(frame));
+  FC_SERIAL.write(frame, sizeof(frame));
 }
 
-// --- stub: read FC / battery voltage in mV ---
-uint16_t readBatteryMv() {
-  // TODO: connect ADC to LiPo and implement real read + scaling
-  return 11100;  // 11.1 V as placeholder
-}
+/* ============================================================
+   CRSF: Telemetry Input ← Flight Controller
+   ============================================================ */
 
-// --- send telemetry back to TX over RF ---
-void sendTelemetry() {
-  uint8_t buf[TELE_LEN];
+void parseCRSFByte(uint8_t b) {
 
-  uint16_t batt = readBatteryMv();
-  int8_t  rssi  = (int8_t)radio.getRSSI();
-
-  uint8_t lq = 0;
-  if (g_totalFrames > 0) {
-    lq = (uint8_t)((g_goodFrames * 100UL) / g_totalFrames);
+  // Stage 1: waiting for sync (0xC8)
+  if (crsfPtr == 0) {
+    if (b == CRSF_ADDR_FC) {   // FC → receiver uses same address
+      crsfBuf[crsfPtr++] = b;
+    }
+    return;
   }
 
-  buf[0] = TELE_SYNC;
-  buf[1] = (batt >> 8) & 0xFF;
+  // Stage 2: store byte
+  crsfBuf[crsfPtr++] = b;
+
+  // Capture frame length (2nd byte)
+  if (crsfPtr == 2) {
+    crsfExpectedLength = b;
+  }
+
+  // If we have the complete frame:
+  if (crsfPtr == crsfExpectedLength + 2) {
+    uint8_t type = crsfBuf[2];
+
+    // Only battery telemetry for now
+    if (type == CRSF_TYPE_BATTERY) {
+      uint16_t volts_x100 = (crsfBuf[3] << 8) | crsfBuf[4]; // 0.01V units
+      fcBatteryMv = volts_x100 * 10;                        // convert → millivolts
+    }
+
+    // Reset parser
+    crsfPtr = 0;
+    crsfExpectedLength = 0;
+  }
+}
+
+void pollFlightControllerTelemetry() {
+  while (FC_SERIAL.available()) {
+    parseCRSFByte(FC_SERIAL.read());
+  }
+}
+
+/* ============================================================
+   RF Telemetry (RX → TX)
+   ============================================================ */
+
+void sendRF_Telemetry() {
+  uint8_t buf[TELEMETRY_PACKET_LEN];
+
+  uint16_t batt = (fcBatteryMv > 0) ? fcBatteryMv : 11100;
+  int8_t   rssi = radio.getRSSI();
+  uint8_t  lq   = (totalFrames > 0) ? (100UL * goodFrames / totalFrames) : 0;
+
+  buf[0] = SYNC_TELEMETRY;
+  buf[1] = batt >> 8;
   buf[2] = batt & 0xFF;
-  buf[3] = (uint8_t)rssi;
+  buf[3] = rssi;
   buf[4] = lq;
   buf[5] = 0;
   buf[6] = 0;
+  buf[7] = crcRF(buf, 7);
 
-  buf[7] = linkCrc8(buf, 7);
-
-  int16_t state = radio.transmit(buf, TELE_LEN);
-  (void)state;
-  radio.startReceive();  // back to RX
+  radio.transmit(buf, TELEMETRY_PACKET_LEN);
+  radio.startReceive();
 }
+
+/* ============================================================
+   Setup
+   ============================================================ */
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  Serial.println("RX: boot");
+  delay(300);
+  Serial.println("RX: Starting...");
 
-  // CRSF UART to FC
-  CRSF_SERIAL.begin(420000, SERIAL_8N1, CRSF_RX_PIN, CRSF_TX_PIN);
+  // FC UART (CRSF)
+  FC_SERIAL.begin(420000, SERIAL_8N1, PIN_FC_RX, PIN_FC_TX);
 
-  // SPI + radio
+  // Radio SPI bus
   SPI.begin(18, 19, 23);
-  int16_t state = radio.beginFLRC(
-    2440.0,     // MHz
-    1300,       // kbps
-    1,          // coding rate index (1:0)
-    10,         // dBm
-    16,         // preamble
+
+  // Init SX1280 with FLRC parameters
+  int16_t err = radio.beginFLRC(
+    2440.0,                 // MHz
+    1300,                  // kbps
+    1,                     // coding rate index
+    10,                    // TX power (dBm)
+    16,                    // preamble
     RADIOLIB_SHAPING_0_5
   );
-  if (state != RADIOLIB_ERR_NONE) {
-    Serial.print("Radio init failed, code "); Serial.println(state);
+
+  if (err != RADIOLIB_ERR_NONE) {
+    Serial.print("SX1280 init failed: ");
+    Serial.println(err);
     while (true) delay(100);
   }
 
   radio.startReceive();
 }
 
+/* ============================================================
+   Main Loop
+   ============================================================ */
+
 void loop() {
+
+  // Step 1: Read telemetry from Betaflight (UART → CRSF)
+  pollFlightControllerTelemetry();
+
+  // Step 2: Check for RF control packet
   uint8_t rxBuf[32];
-
   int16_t state = radio.readData(rxBuf, sizeof(rxBuf));
+
   if (state == RADIOLIB_ERR_NONE) {
+
     size_t len = radio.getPacketLength();
-    if (len == CTRL_LEN && rxBuf[0] == CTRL_SYNC && linkCrc8(rxBuf, 11) == rxBuf[11]) {
-      g_totalFrames++;
-      g_goodFrames++;
+    bool packetOK =
+      (len == CONTROL_PACKET_LEN) &&
+      (rxBuf[0] == SYNC_CONTROL) &&
+      (crcRF(rxBuf, 11) == rxBuf[11]);
 
-      uint8_t frame = rxBuf[1];
-      uint8_t flags = rxBuf[2];
-      (void)frame;
-      (void)flags;
+    totalFrames++;
 
-      uint16_t c1 = (rxBuf[3]  << 8) | rxBuf[4];
-      uint16_t c2 = (rxBuf[5]  << 8) | rxBuf[6];
-      uint16_t c3 = (rxBuf[7]  << 8) | rxBuf[8];
-      uint16_t c4 = (rxBuf[9]  << 8) | rxBuf[10];
+    if (packetOK) {
+      goodFrames++;
 
-      int rollUs  = map11bitToUs(c1);
-      int pitchUs = map11bitToUs(c2);
-      int yawUs   = map11bitToUs(c3);
-      int thrUs   = map11bitToUs(c4);
+      uint16_t roll  = (rxBuf[3] << 8) | rxBuf[4];
+      uint16_t pitch = (rxBuf[5] << 8) | rxBuf[6];
+      uint16_t yaw   = (rxBuf[7] << 8) | rxBuf[8];
+      uint16_t thr   = (rxBuf[9] << 8) | rxBuf[10];
 
-      // Debug
-      Serial.print("RC us: R "); Serial.print(rollUs);
-      Serial.print(" P "); Serial.print(pitchUs);
-      Serial.print(" Y "); Serial.print(yawUs);
-      Serial.print(" T "); Serial.println(thrUs);
+      // Convert 11-bit RF to Betaflight RC us
+      int rollUs  = rfToUs(roll);
+      int pitchUs = rfToUs(pitch);
+      int yawUs   = rfToUs(yaw);
+      int thrUs   = rfToUs(thr);
 
-      // Send to FC via CRSF
-      sendCrsfRcChannels(rollUs, pitchUs, yawUs, thrUs);
+      // Output RC to Betaflight
+      sendCRSF_RC(rollUs, pitchUs, yawUs, thrUs);
 
-      // Send telemetry back to TX
-      sendTelemetry();
-    } else {
-      g_totalFrames++;
+      // Send telemetry back to transmitter
+      sendRF_Telemetry();
     }
 
     radio.startReceive();
-    } else if (state != RADIOLIB_ERR_RX_TIMEOUT && state != RADIOLIB_ERR_WRONG_MODEM) {
-    // some other error, restart RX
-    Serial.print("RX err "); Serial.println(state);
-    radio.startReceive();
   }
-
-  // you can add failsafe logic here based on time since last good frame
 }
