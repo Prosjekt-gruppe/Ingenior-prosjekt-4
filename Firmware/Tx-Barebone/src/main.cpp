@@ -158,3 +158,32 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("TX: boot");
+
+  SPI.begin(18, 19, 23);
+  int16_t state = radio.beginFLRC(
+    2440.0,     // MHz
+    1300,       // kbps
+    1,          // coding rate idx
+    10,         // dBm
+    16,         // preamble
+    RADIOLIB_SHAPING_0_5
+  );
+  if (state != RADIOLIB_ERR_NONE) {
+    Serial.print("Radio init failed, code "); Serial.println(state);
+    while (true) delay(100);
+  }
+}
+
+void loop() {
+  // 1) Update RC from JSON UART if new data available
+  pollSerialJson();
+
+  // 2) Send control frame
+  sendControlFrame();
+
+  // 3) Telemetry window (drone replies right after its RX)
+  receiveTelemetryWindow();
+
+  // 4) Repeat at ~250 Hz
+  delay(4);
+}
