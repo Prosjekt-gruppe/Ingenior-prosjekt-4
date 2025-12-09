@@ -204,7 +204,7 @@ void loop() {
     }
 
     radio.startReceive();
-  } else if (state != RADIOLIB_ERR_RX_TIMEOUT && state != RADIOLIB_ERR_WRONG_MODE) {
+    } else if (state != RADIOLIB_ERR_RX_TIMEOUT && state != RADIOLIB_ERR_WRONG_MODEM) {
     // some other error, restart RX
     Serial.print("RX err "); Serial.println(state);
     radio.startReceive();
