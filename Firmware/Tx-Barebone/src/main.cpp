@@ -147,7 +147,8 @@ void receiveTelemetryWindow() {
         Serial.println(out);
       }
       break; // done for this frame
-    } else if (st != RADIOLIB_ERR_RX_TIMEOUT && st != RADIOLIB_ERR_WRONG_MODE) {
+      } else if (st != RADIOLIB_ERR_RX_TIMEOUT && st != RADIOLIB_ERR_WRONG_MODEM) {
+
       // some other error - ignore and break
       break;
     }
