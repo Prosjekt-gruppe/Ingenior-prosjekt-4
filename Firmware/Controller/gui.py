@@ -56,25 +56,50 @@ def stop_serial():
     print("Communication stopped")
 
 def send_data(ser):
+    global comm_running
+
     while comm_running:
-        msg = "Controller data.\n"
+        data = {
+            "thrust": thrust,
+            "heading": heading,
+            "pitch": pitch,
+            "roll": roll,
+            "altitude": altitude
+        }
         try:
-            ser.write(msg.encode('utf-8'))
+            ser.write((json.dumps(data) + "\n").encode())
         except:
             break
-        print("Data sendt")
-        time.sleep(0.5)
+        time.sleep(0.05)
         
 
 def receive_data(ser):
+    global heading, pitch, roll, voltage, current, prev_voltage, prev_current, altitude
+    buffer = ""
     while comm_running:
         try:
-            if ser.in_waiting > 0:
-                received_data = ser.readline().decode().strip()
-                print(f"Received: {received_data}")
+            buffer += ser.read().decode(errors="ignore")
+            if "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                try:
+                    msg = json.loads(line)
+                    # only update if key exists
+                    heading       = msg.get("heading", heading)
+                    pitch         = msg.get("pitch", pitch)
+                    roll          = msg.get("roll", roll)
+                    voltage       = msg.get("voltage", voltage)
+                    current       = msg.get("current", current)
+                    prev_voltage  = msg.get("prev_voltage", prev_voltage)
+                    prev_current  = msg.get("prev_current", prev_current)
+                    altitude      = msg.get("altitude", altitude)
+                    print("RX OK:", msg)
+
+                except json.JSONDecodeError:
+                    print("Bad JSON:", line)
+
         except:
             break
-        
+
 
 
 
