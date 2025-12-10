@@ -2,140 +2,179 @@
 #include <RadioLib.h>
 #include <ArduinoJson.h>
 
-// ----------- SX1280 / Lambda80 wiring ----------
-static const int SX_CS   = 5;
-static const int SX_DIO1 = 26;
-static const int SX_RST  = 25;
-static const int SX_BUSY = 27;
+/* ============================================================
+   Hardware Configuration
+   ============================================================ */
 
-SX1280 radio = new Module(SX_CS, SX_DIO1, SX_RST, SX_BUSY);
+// SX1280 / Lambda80 wiring
+static const int PIN_CS   = 5;
+static const int PIN_DIO1 = 26;
+static const int PIN_RST  = 25;
+static const int PIN_BUSY = 27;
 
-// ----------- link packets ----------
-static const uint8_t CTRL_SYNC  = 0xA5;
-static const uint8_t TELE_SYNC  = 0x5A;
-static const size_t  CTRL_LEN   = 12;
-static const size_t  TELE_LEN   = 8;
+// Create RadioLib module object
+SX1280 radio = new Module(PIN_CS, PIN_DIO1, PIN_RST, PIN_BUSY);
 
-// last known RC values (µs)
-volatile int g_rollUs  = 1500;
-volatile int g_pitchUs = 1500;
-volatile int g_yawUs   = 1500;
-volatile int g_thrUs   = 1000;
+/* ============================================================
+   Protocol Constants
+   ============================================================ */
+
+const uint8_t SYNC_CONTROL   = 0xA5;
+const uint8_t SYNC_TELEMETRY = 0x5A;
+
+const size_t CONTROL_LEN   = 12;
+const size_t TELEMETRY_LEN = 8;
+
+/* ============================================================
+   RC Input State
+   ============================================================ */
+
+volatile int rollUs     = 1500;
+volatile int pitchUs    = 1500;
+volatile int yawUs      = 1500;
+volatile int throttleUs = 1000;
 
 uint8_t frameCounter = 0;
 
-// --- CRC-8 for link packets (poly 0x8C) ---
-uint8_t linkCrc8(const uint8_t* data, uint8_t len) {
-  uint8_t crc = 0x00;
+/* ============================================================
+   Utility Functions
+   ============================================================ */
+
+// --- CRC for control/telemetry (poly 0x8C) ---
+uint8_t crcRF(const uint8_t* data, uint8_t len) {
+  uint8_t crc = 0;
   while (len--) {
-    uint8_t extract = *data++;
+    uint8_t in = *data++;
     for (uint8_t i = 0; i < 8; i++) {
-      uint8_t sum = (crc ^ extract) & 0x01;
+      uint8_t mix = (crc ^ in) & 1;
       crc >>= 1;
-      if(sum) crc ^= 0x8C;
-      extract >>= 1;
+      if (mix) crc ^= 0x8C;
+      in >>= 1;
     }
   }
   return crc;
 }
 
-// map us -> 11-bit 0..2047 for RF packet
-uint16_t mapUsTo11bit(int us) {
-  if (us < 1000) us = 1000;
-  if (us > 2000) us = 2000;
+// Convert RC microseconds → 11-bit 0..2047 for RF
+uint16_t usTo11bit(int us) {
+  us = constrain(us, 1000, 2000);
   return (uint16_t)((us - 1000) * 2047L / 1000L);
 }
 
-// --- parse JSON RC from Serial (line-based) ---
-void processSerialJsonLine(const String& line) {
+/* ============================================================
+   JSON Input Handling
+   ============================================================ */
+
+void handleJsonLine(const String& line) {
   StaticJsonDocument<256> doc;
-  DeserializationError err = deserializeJson(doc, line);
+
+  auto err = deserializeJson(doc, line);
   if (err) {
-    Serial.print("JSON error: "); Serial.println(err.f_str());
+    Serial.print("JSON error: ");
+    Serial.println(err.f_str());
     return;
   }
 
-  // optional "type" field
+  // Optional "type": "rc"
   const char* type = doc["type"] | "rc";
-  if (strcmp(type, "rc") != 0) {
-    return;
-  }
+  if (strcmp(type, "rc") != 0) return;
 
-  if (doc.containsKey("roll"))     g_rollUs  = doc["roll"];
-  if (doc.containsKey("pitch"))    g_pitchUs = doc["pitch"];
-  if (doc.containsKey("yaw"))      g_yawUs   = doc["yaw"];
-  if (doc.containsKey("throttle")) g_thrUs   = doc["throttle"];
+  if (doc.containsKey("roll"))     rollUs     = doc["roll"];
+  if (doc.containsKey("pitch"))    pitchUs    = doc["pitch"];
+  if (doc.containsKey("yaw"))      yawUs      = doc["yaw"];
+  if (doc.containsKey("throttle")) throttleUs = doc["throttle"];
 }
 
-// --- read Serial non-blocking, split by '\n' ---
-void pollSerialJson() {
-  static String buf;
-  while (Serial.available() > 0) {
-    char c = (char)Serial.read();
+// Read Serial line-by-line, non-blocking
+void pollJsonInput() {
+  static String buffer;
+
+  while (Serial.available()) {
+    char c = Serial.read();
+
     if (c == '\r') continue;
+
     if (c == '\n') {
-      if (buf.length() > 0) {
-        processSerialJsonLine(buf);
-        buf = "";
+      if (buffer.length() > 0) {
+        handleJsonLine(buffer);
+        buffer = "";
       }
+      continue;
+    }
+
+    // accumulate
+    if (buffer.length() < 240) {
+      buffer += c;
     } else {
-      if (buf.length() < 240) {
-        buf += c;
-      } else {
-        // overflow - reset
-        buf = "";
-      }
+      buffer = "";  // overflow: reset buffer
     }
   }
 }
 
-// --- build and send one control packet ---
-void sendControlFrame() {
-  uint8_t txBuf[CTRL_LEN];
+/* ============================================================
+   RF: Send Control Frames
+   ============================================================ */
 
-  uint16_t c1 = mapUsTo11bit(g_rollUs);
-  uint16_t c2 = mapUsTo11bit(g_pitchUs);
-  uint16_t c3 = mapUsTo11bit(g_yawUs);
-  uint16_t c4 = mapUsTo11bit(g_thrUs);
+void sendControlPacket() {
+  uint8_t tx[CONTROL_LEN];
 
-  txBuf[0]  = CTRL_SYNC;
-  txBuf[1]  = frameCounter++;
-  txBuf[2]  = 0x00;   // flags placeholder
+  // Convert RC → 11-bit values
+  uint16_t c1 = usTo11bit(rollUs);
+  uint16_t c2 = usTo11bit(pitchUs);
+  uint16_t c3 = usTo11bit(yawUs);
+  uint16_t c4 = usTo11bit(throttleUs);
 
-  txBuf[3]  = (c1 >> 8) & 0xFF;
-  txBuf[4]  =  c1       & 0xFF;
-  txBuf[5]  = (c2 >> 8) & 0xFF;
-  txBuf[6]  =  c2       & 0xFF;
-  txBuf[7]  = (c3 >> 8) & 0xFF;
-  txBuf[8]  =  c3       & 0xFF;
-  txBuf[9]  = (c4 >> 8) & 0xFF;
-  txBuf[10] =  c4       & 0xFF;
+  tx[0]  = SYNC_CONTROL;
+  tx[1]  = frameCounter++;
+  tx[2]  = 0x00;   // reserved flags
 
-  txBuf[11] = linkCrc8(txBuf, 11);
+  tx[3]  = c1 >> 8;
+  tx[4]  = c1 & 0xFF;
+  tx[5]  = c2 >> 8;
+  tx[6]  = c2 & 0xFF;
+  tx[7]  = c3 >> 8;
+  tx[8]  = c3 & 0xFF;
+  tx[9]  = c4 >> 8;
+  tx[10] = c4 & 0xFF;
 
-  int16_t st = radio.transmit(txBuf, CTRL_LEN);
+  tx[11] = crcRF(tx, 11);
+
+  int16_t st = radio.transmit(tx, CONTROL_LEN);
   if (st != RADIOLIB_ERR_NONE) {
-    Serial.print("TX err "); Serial.println(st);
+    Serial.print("TX error: ");
+    Serial.println(st);
   }
 }
 
-// --- wait short window for telemetry, print JSON if received ---
-void receiveTelemetryWindow() {
-  radio.startReceive();
-  unsigned long start = micros();
-  const unsigned long windowUs = 3000; // ~3 ms
+/* ============================================================
+   RF: Receive Telemetry Frames
+   ============================================================ */
 
-  while ((micros() - start) < windowUs) {
-    uint8_t buf[TELE_LEN];
+void receiveTelemetry() {
+  // Switch to RX mode
+  radio.startReceive();
+
+  const unsigned long windowUs = 3000;    // ~3 ms
+  unsigned long start = micros();
+
+  while (micros() - start < windowUs) {
+    uint8_t buf[TELEMETRY_LEN];
     int16_t st = radio.readData(buf, sizeof(buf));
+
     if (st == RADIOLIB_ERR_NONE) {
       size_t len = radio.getPacketLength();
-      if (len == TELE_LEN && buf[0] == TELE_SYNC && linkCrc8(buf, 7) == buf[7]) {
+
+      bool ok =
+        (len == TELEMETRY_LEN) &&
+        (buf[0] == SYNC_TELEMETRY) &&
+        (crcRF(buf, 7) == buf[7]);
+
+      if (ok) {
         uint16_t batt = (buf[1] << 8) | buf[2];
-        int8_t   rssi = (int8_t)buf[3];
+        int8_t   rssi = buf[3];
         uint8_t  lq   = buf[4];
 
-        // output telemetry JSON
+        // Output telemetry JSON
         StaticJsonDocument<256> doc;
         doc["type"]    = "telemetry";
         doc["batt_mv"] = batt;
@@ -146,45 +185,61 @@ void receiveTelemetryWindow() {
         serializeJson(doc, out);
         Serial.println(out);
       }
-      break; // done for this frame
-      } else if (st != RADIOLIB_ERR_RX_TIMEOUT && st != RADIOLIB_ERR_WRONG_MODEM) {
+      break;  // whether good or bad packet, exit window
+    }
 
-      // some other error - ignore and break
+    else if (st != RADIOLIB_ERR_RX_TIMEOUT &&
+             st != RADIOLIB_ERR_WRONG_MODEM) {
+      // Unexpected error — ignore and exit
       break;
     }
   }
 }
 
+/* ============================================================
+   Setup
+   ============================================================ */
+
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  Serial.println("TX: boot");
+  delay(300);
 
+  Serial.println("TX: Starting...");
+
+  // SPI for SX1280
   SPI.begin(18, 19, 23);
-  int16_t state = radio.beginFLRC(
+
+  int16_t err = radio.beginFLRC(
     2440.0,     // MHz
     1300,       // kbps
-    1,          // coding rate idx
-    10,         // dBm
-    16,         // preamble
+    1,          // coding rate index
+    10,         // dBm output power
+    16,         // preamble length
     RADIOLIB_SHAPING_0_5
   );
-  if (state != RADIOLIB_ERR_NONE) {
-    Serial.print("Radio init failed, code "); Serial.println(state);
+
+  if (err != RADIOLIB_ERR_NONE) {
+    Serial.print("Radio init failed: ");
+    Serial.println(err);
     while (true) delay(100);
   }
 }
 
+/* ============================================================
+   Main Loop
+   ============================================================ */
+
 void loop() {
-  // 1) Update RC from JSON UART if new data available
-  pollSerialJson();
 
-  // 2) Send control frame
-  sendControlFrame();
+  // 1) Update RC input from JSON
+  pollJsonInput();
 
-  // 3) Telemetry window (drone replies right after its RX)
-  receiveTelemetryWindow();
+  // 2) Send control frame to quad
+  sendControlPacket();
 
-  // 4) Repeat at ~250 Hz
+  // 3) Listen briefly for telemetry reply
+  receiveTelemetry();
+
+  // 4) Maintain ~250 Hz loop
   delay(4);
 }
