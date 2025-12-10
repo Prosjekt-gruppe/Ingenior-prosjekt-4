@@ -34,24 +34,50 @@ com_buttons = []
 com_buttons_created = False
 selected_port = None
 baudrate_options = ["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"]
-
+ser = None
+comm_running = False
+tx = None
+rx = None
 pygame.display.set_caption("Drone GUI")
 
 window_surface = pygame.display.set_mode((800, 600))
 
 
 #Drone communication
+def stop_serial():
+    global ser, comm_running, tx, rx
+    comm_running = False
+    if ser:
+        try:
+            ser.close()
+        except:
+            pass
+        ser = None
+    print("Communication stopped")
+
 def send_data(ser):
+    while comm_running:
         msg = "Controller data.\n"
-        ser.write(msg.encode('utf-8'))
-        print(f"Data sendt")
+        try:
+            ser.write(msg.encode('utf-8'))
+        except:
+            break
+        print("Data sendt")
+        time.sleep(0.5)
         
 
 def receive_data(ser):
-    while True:
-        if ser.in_waiting > 0:
-            received_data = ser.readline().decode().strip()
-            print(f"Received: {received_data}")
+    while comm_running:
+        try:
+            if ser.in_waiting > 0:
+                received_data = ser.readline().decode().strip()
+                print(f"Received: {received_data}")
+        except:
+            break
+        
+
+
+
 
 def create_com_buttons():
     global com_buttons
@@ -156,7 +182,7 @@ background = pygame.image.load("Firmware/Controller/Gui elements/Background.png"
 #Bottom button creation
 Settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Settings', manager=manager)
 Gui_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((265, 500), (273, 100)), text=Gui_button_text, manager=manager)
-controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Toggle Controller', manager=manager)
+controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Start Communication', manager=manager)
 baudrate_dropdown = pygame_gui.elements.UIDropDownMenu(
     options_list=baudrate_options,
     starting_option=str(baudrate),
@@ -300,18 +326,6 @@ def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font
 
 
 
-# bound rate on two ports must be the same
-#Chane to runtime check
-#ser = serial.Serial('/dev/ttyUSB0', 115200)
-#print(ser.portstr)
-#time.sleep(0.5)
-#tx = threading.Thread(target=send_data, args=(ser,))
-#rx = threading.Thread(target=receive_data, args=(ser,), daemon=True)
-#tx.start()
-#rx.start()
-
-
-
 clock = pygame.time.Clock()
 is_running = True
 while is_running:
@@ -413,11 +427,35 @@ while is_running:
                 text_gui = not text_gui
                 settings_gui = False
                 print(f"Gui switch is pressed and text state is {text_gui}")
-            if event.ui_element == controll_button:
-                print('Controller enabled')
             if event.ui_element in com_buttons:
                 com_port = event.ui_element.port_name
                 print(f"Selected COM port: {com_port}")
+            if event.ui_element == controll_button:
+                # Toggle on/off
+                if not comm_running:
+                    if selected_port is None and com_port == "":
+                        print("No COM port selected!")
+                    else:
+                        port = com_port if com_port else selected_port
+
+                        try:
+                            ser = serial.Serial(port, baudrate, timeout=0.1)
+                            comm_running = True
+
+                            tx = threading.Thread(target=send_data, args=(ser,))
+                            rx = threading.Thread(target=receive_data, args=(ser,), daemon=True)
+                            tx.start()
+                            rx.start()
+                            controll_button.set_text("Stop Communication")
+                            print(f"Communication started on {port} @ {baudrate}")
+
+                        except Exception as e:
+                            print(f"Error opening port: {e}")
+
+                else:
+                    stop_serial()
+                    controll_button.set_text("Start Communication")
+
 
 
         #Controller events
