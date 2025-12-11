@@ -1,8 +1,3 @@
-#TO DO:
-# Fill roll and pitch gauges based on the variables
-# Add Barometer bar
-# Add drone visualisation
-
 import pygame
 import pygame_gui
 import math
@@ -36,46 +31,99 @@ gauge_text = pygame.font.SysFont("Arial", 16)
 
 Gui_button_text = "Text GUI"
 com_buttons = []
+com_buttons_created = False
 selected_port = None
 baudrate_options = ["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"]
-
+ser = None
+comm_running = False
+tx = None
+rx = None
 pygame.display.set_caption("Drone GUI")
 
 window_surface = pygame.display.set_mode((800, 600))
 
 
 #Drone communication
+def stop_serial():
+    global ser, comm_running, tx, rx
+    comm_running = False
+    if ser:
+        try:
+            ser.close()
+        except:
+            pass
+        ser = None
+    print("Communication stopped")
+
 def send_data(ser):
-        msg = "Controller data.\n"
-        ser.write(msg.encode('utf-8'))
-        print(f"Data sendt")
+    global comm_running
+
+    while comm_running:
+        data = {
+            "thrust": thrust,
+            "heading": heading,
+            "pitch": pitch,
+            "roll": roll,
+            "altitude": altitude
+        }
+        try:
+            ser.write((json.dumps(data) + "\n").encode())
+        except:
+            break
+        time.sleep(0.05)
         
 
 def receive_data(ser):
-    while True:
-        if ser.in_waiting > 0:
-            received_data = ser.readline().decode().strip()
-            print(f"Received: {received_data}")
+    global heading, pitch, roll, voltage, current, prev_voltage, prev_current, altitude
+    buffer = ""
+    while comm_running:
+        try:
+            buffer += ser.read().decode(errors="ignore")
+            if "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                try:
+                    msg = json.loads(line)
+                    # only update if key exists
+                    heading       = msg.get("heading", heading)
+                    pitch         = msg.get("pitch", pitch)
+                    roll          = msg.get("roll", roll)
+                    voltage       = msg.get("voltage", voltage)
+                    current       = msg.get("current", current)
+                    prev_voltage  = msg.get("prev_voltage", prev_voltage)
+                    prev_current  = msg.get("prev_current", prev_current)
+                    altitude      = msg.get("altitude", altitude)
+                    print("RX OK:", msg)
+
+                except json.JSONDecodeError:
+                    print("Bad JSON:", line)
+
+        except:
+            break
+
+
+
+
 
 def create_com_buttons():
     global com_buttons
     for b in com_buttons:
         b.kill()
     com_buttons = []
-
     ports = list_ports.comports()
-
     y = 100
     for p in ports:
-        # Filter: ignore ports without a meaningful description
         if p.description and p.description.lower() != "n/a":
             btn = pygame_gui.elements.UIButton(
-                relative_rect=pygame.Rect((310, y), (300, 30)),
-                text=f"{p.device}  -  {p.description}",
-                manager=manager
-            )
+            relative_rect=pygame.Rect((310, y), (300, 30)),
+            text=f"{p.device}  -  {p.description}",
+            manager=manager
+)
+            # ← lagre port-navnet på knappen!
+            btn.port_name = p.device
+
             com_buttons.append(btn)
             y += 40
+
 
 def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
     start_angle = math.radians(0-90)          # -90 so 0° is at top
@@ -96,11 +144,9 @@ def draw_wedge(surface, center, radius, data, color=(255, 0, 0)):
 def draw_center_out_fill(surface, center, radius, value, max_value=90, color=(128,0,0)):
     # Clamp the value
     value = max(-max_value, min(max_value, value))
-
     # Determine fill width proportionally
     fill_ratio = abs(value) / max_value
     fill_width = radius * fill_ratio
-
     # Create a rect for the fill
     if value > 0:
         fill_rect = pygame.Rect(center[0], center[1]-radius, fill_width, radius*2)
@@ -111,6 +157,21 @@ def draw_center_out_fill(surface, center, radius, value, max_value=90, color=(12
     pygame.draw.rect(surface, color, fill_rect)
 
 
+def draw_center_out_fill_vertical(surface, center, radius, value, max_value=90, color=(255,0,0)):
+    # Clamp value
+    value = max(-max_value, min(max_value, value))
+    # Determine proportional height
+    fill_ratio = abs(value) / max_value
+    fill_height = radius * fill_ratio
+    # Create the rect
+    if value > 0:
+        # positive = upwards
+        fill_rect = pygame.Rect(center[0]-radius, center[1]-fill_height, radius*2, fill_height)
+    else:
+        # negative = downwards
+        fill_rect = pygame.Rect(center[0]-radius, center[1], radius*2, fill_height)
+
+    pygame.draw.rect(surface, color, fill_rect)
 
 
 
@@ -146,7 +207,7 @@ background = pygame.image.load("Firmware/Controller/Gui elements/Background.png"
 #Bottom button creation
 Settings_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 500), (270, 100)), text='Settings', manager=manager)
 Gui_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((265, 500), (273, 100)), text=Gui_button_text, manager=manager)
-controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Toggle Controller', manager=manager)
+controll_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((530, 500), (273, 100)), text='Start Communication', manager=manager)
 baudrate_dropdown = pygame_gui.elements.UIDropDownMenu(
     options_list=baudrate_options,
     starting_option=str(baudrate),
@@ -161,14 +222,14 @@ def draw_gauges():
     window.blit(background,(0,0))
     #Pitch gauge
     window.blit(pitch_gauge_back, (35,50))
+    draw_center_out_fill_vertical(window, center=(95, 110), radius=59, value=pitch, max_value=90, color=(255,0,0))
     window.blit(pitch_gauge, (35,50))
     window.blit(pitch_text, (79,30))
-
     #Roll gauge
     window.blit(roll_gauge_back, (35,200))
+    draw_center_out_fill(window, center=(95, 260), radius=59, value=roll, max_value=90, color=(255,0,0))     
     window.blit(roll_gauge, (35,200))
     window.blit(roll_text, (80, 180))
-    draw_center_out_fill(window, center=(95, 260), radius=59, value=roll, max_value=90, color=(255,0,0))     
 
     #Heading gauge
     window.blit(heading_gauge_back, (35,350))
@@ -290,18 +351,6 @@ def draw_barometer(surface,min_altitude, max_altitude ,x, y, width, height, font
 
 
 
-# bound rate on two ports must be the same
-#Chane to runtime check
-#ser = serial.Serial('/dev/ttyUSB0', 115200)
-#print(ser.portstr)
-#time.sleep(0.5)
-#tx = threading.Thread(target=send_data, args=(ser,))
-#rx = threading.Thread(target=receive_data, args=(ser,), daemon=True)
-#tx.start()
-#rx.start()
-
-
-
 clock = pygame.time.Clock()
 is_running = True
 while is_running:
@@ -311,13 +360,19 @@ while is_running:
     if(text_gui):
         Gui_button.set_text("Visual GUI")
         Settings_button.set_text("Settings")
-    elif(settings_gui):
-        Settings_button.set_text("Visual GUI")
-        Gui_button.set_text("Text Gui")
-        create_com_buttons()
+        for btn in com_buttons:
+            btn.hide()
+    elif settings_gui:
+        if not com_buttons_created:
+            create_com_buttons()
+            com_buttons_created = True
+        for btn in com_buttons:
+            btn.show()
     else:
         Settings_button.set_text("Settings")
         Gui_button.set_text("Text Gui")
+        for btn in com_buttons:
+            btn.hide()
 
     if(thrust > 200):
         thrust = 200
@@ -397,8 +452,35 @@ while is_running:
                 text_gui = not text_gui
                 settings_gui = False
                 print(f"Gui switch is pressed and text state is {text_gui}")
+            if event.ui_element in com_buttons:
+                com_port = event.ui_element.port_name
+                print(f"Selected COM port: {com_port}")
             if event.ui_element == controll_button:
-                print('Controller enabled')
+                # Toggle on/off
+                if not comm_running:
+                    if selected_port is None and com_port == "":
+                        print("No COM port selected!")
+                    else:
+                        port = com_port if com_port else selected_port
+
+                        try:
+                            ser = serial.Serial(port, baudrate, timeout=0.1)
+                            comm_running = True
+
+                            tx = threading.Thread(target=send_data, args=(ser,))
+                            rx = threading.Thread(target=receive_data, args=(ser,), daemon=True)
+                            tx.start()
+                            rx.start()
+                            controll_button.set_text("Stop Communication")
+                            print(f"Communication started on {port} @ {baudrate}")
+
+                        except Exception as e:
+                            print(f"Error opening port: {e}")
+
+                else:
+                    stop_serial()
+                    controll_button.set_text("Start Communication")
+
 
 
         #Controller events
